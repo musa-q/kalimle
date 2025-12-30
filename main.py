@@ -3,7 +3,7 @@ kalimle - FastAPI Application
 Server-side rendered game with minimal JavaScript.
 """
 from fastapi import FastAPI, Request, Form, Cookie
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from typing import Optional
@@ -145,6 +145,69 @@ async def submit_guess(
     })
     
     # Save state to cookie
+    response.set_cookie(
+        key="game_state",
+        value=json.dumps(state),
+        max_age=86400,  # 24 hours
+        httponly=True,
+        samesite="lax"
+    )
+    
+    return response
+
+
+@app.post("/api/guess")
+async def api_submit_guess(
+    request: Request,
+    guess: str = Form(...),
+    game_state: Optional[str] = Cookie(default=None)
+):
+    """JSON API endpoint for guess submission."""
+    puzzle = get_todays_puzzle()
+    state = get_game_state(game_state)
+    
+    # Don't process if game is already over
+    if state["game_over"]:
+        return JSONResponse({"error": "Game already over"}, status_code=400)
+    
+    # Clean and validate the guess
+    guess = guess.strip()
+    
+    # Validate guess length
+    is_valid, error_msg = validate_guess_length(guess, puzzle["target"])
+    if not is_valid:
+        return JSONResponse({"error": error_msg}, status_code=400)
+    
+    # Get feedback for this guess
+    feedback = validate_guess(guess, puzzle["target"])
+    
+    # Update state
+    state["guesses"].append(guess)
+    state["feedback"].append(feedback)
+    
+    # Check win/lose conditions
+    if check_win(guess, puzzle["target"]):
+        state["won"] = True
+        state["game_over"] = True
+    elif len(state["guesses"]) >= MAX_GUESSES:
+        state["game_over"] = True
+    
+    # Prepare response data
+    response_data = {
+        "success": True,
+        "guess": guess,
+        "feedback": feedback,
+        "game_over": state["game_over"],
+        "won": state["won"],
+        "remaining_guesses": MAX_GUESSES - len(state["guesses"]),
+        "target": puzzle["target"] if state["game_over"] else None,
+        "pronunciation": puzzle["pronunciation"] if state["game_over"] else None,
+        "meaning": puzzle["meaning"] if state["game_over"] else None,
+        "example": puzzle["example"] if state["game_over"] else None
+    }
+    
+    # Create response with updated cookie
+    response = JSONResponse(response_data)
     response.set_cookie(
         key="game_state",
         value=json.dumps(state),

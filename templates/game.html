@@ -2,7 +2,9 @@
 <html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#121213">
+    <meta name="description" content="Daily Arabic word puzzle game - Guess the Arabic word that fills the blank">
     <title>kalimle - Daily Arabic Word Puzzle</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
@@ -17,7 +19,7 @@
             <!-- Daily Sentence -->
             <div class="sentence-card">
                 <p class="sentence">{{ sentence }}</p>
-                <p class="hint">The word has <strong>{{ target_length }}</strong> letters</p>
+                <p class="hint">💡 The word has <strong>{{ target_length }}</strong> letters</p>
             </div>
 
             <!-- Error Message -->
@@ -55,7 +57,7 @@
                 <h2>😔 Game Over</h2>
                 <p>Better luck tomorrow!</p>
                 {% endif %}
-                
+
                 <div class="answer-reveal">
                     <h3>The Answer</h3>
                     <div class="answer-word" dir="rtl">{{ target }}</div>
@@ -64,30 +66,35 @@
                 </div>
 
                 <div class="share-section">
-                    <button id="share-btn" class="btn btn-share" onclick="shareResult()">
+                    <button id="share-btn" class="btn btn-share" onclick="shareResult()" aria-label="Share your result">
                         📤 Share Result
                     </button>
-                    <p class="next-puzzle-info">Next puzzle in: <span id="countdown"></span></p>
+                    <p class="next-puzzle-info">⏰ Next puzzle in: <span id="countdown"></span></p>
                 </div>
             </div>
             {% else %}
             <!-- Input Form -->
             <form action="/guess" method="post" class="guess-form" id="guess-form">
                 <div class="input-group">
-                    <input 
-                        type="text" 
-                        name="guess" 
+                    <input
+                        type="text"
+                        name="guess"
                         id="guess-input"
-                        class="guess-input" 
+                        class="guess-input"
                         dir="rtl"
                         placeholder="اكتب كلمة عربية"
                         autocomplete="off"
+                        autocorrect="off"
+                        autocapitalize="off"
+                        spellcheck="false"
+                        inputmode="text"
                         autofocus
                         required
+                        aria-label="Enter your Arabic word guess"
                     >
-                    <button type="submit" class="btn btn-submit">Guess</button>
+                    <button type="submit" class="btn btn-submit" aria-label="Submit guess">Guess</button>
                 </div>
-                <p class="remaining">{{ remaining_guesses }} guesses remaining</p>
+                <p class="remaining">📊 {{ remaining_guesses }} guesses remaining</p>
             </form>
             {% endif %}
 
@@ -165,10 +172,7 @@
         </main>
 
         <footer>
-            <p>A new word every day • Same word for everyone worldwide</p>
-            <form action="/reset" method="post" style="display: inline;">
-                <button type="submit" class="btn btn-reset">Reset Today's Game</button>
-            </form>
+            <p>🌍 A new word every day • Same word for everyone worldwide</p>
         </footer>
     </div>
 
