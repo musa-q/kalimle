@@ -1,5 +1,5 @@
 /**
- * Arabic Wordle - Minimal Vanilla JavaScript
+ * kalimle - Minimal Vanilla JavaScript
  * Only handles: countdown timer and share functionality
  * All game logic is server-side
  */
@@ -55,7 +55,7 @@ function shareResult() {
     const attempts = guessRows.length;
     const maxAttempts = 6;
     
-    const shareText = `Arabic Wordle ${today}
+    const shareText = `kalimle ${today}
 ${isWin ? attempts : 'X'}/${maxAttempts}
 
 ${emojiGrid}
@@ -64,7 +64,7 @@ ${emojiGrid}
     // Try to use native share API, fall back to clipboard
     if (navigator.share) {
         navigator.share({
-            title: 'Arabic Wordle',
+            title: 'kalimle',
             text: shareText
         }).catch(() => {
             copyToClipboard(shareText);

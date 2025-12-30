@@ -1,1 +1,1 @@
-# Arabic Wordle Game Module
+# kalimle Game Module

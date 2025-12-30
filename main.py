@@ -1,5 +1,5 @@
 """
-Arabic Wordle - FastAPI Application
+kalimle - FastAPI Application
 Server-side rendered game with minimal JavaScript.
 """
 from fastapi import FastAPI, Request, Form, Cookie
@@ -21,7 +21,7 @@ from game.logic import (
     count_arabic_letters
 )
 
-app = FastAPI(title="Arabic Wordle", description="Daily Arabic Word Puzzle Game")
+app = FastAPI(title="kalimle", description="Daily Arabic Word Puzzle Game")
 
 # Setup templates and static files
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

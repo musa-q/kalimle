@@ -1,4 +1,4 @@
-# Arabic Wordle 🔤
+# kalimle 🔤
 
 A daily Arabic word guessing game inspired by Wordle. Players guess Modern Standard Arabic (MSA) words to fill in English sentence blanks.
 
@@ -26,7 +26,7 @@ A daily Arabic word guessing game inspired by Wordle. Players guess Modern Stand
 1. **Clone the repository**
    ```bash
    git clone <your-repo-url>
-   cd arabic-wordle
+   cd kalimle
    ```
 
 2. **Create a virtual environment**
@@ -53,7 +53,7 @@ A daily Arabic word guessing game inspired by Wordle. Players guess Modern Stand
 ## Project Structure
 
 ```
-arabic-wordle/
+kalimle/
 ├── main.py                 # FastAPI application
 ├── game/
 │   ├── __init__.py

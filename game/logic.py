@@ -1,5 +1,5 @@
 """
-Arabic Wordle - Daily Word Puzzle Game
+kalimle - Daily Word Puzzle Game
 A FastAPI application where players guess Arabic words to fill in English sentence blanks.
 """
 from datetime import date

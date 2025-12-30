@@ -3,7 +3,7 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "arabic-wordle"
+name = "kalimle"
 version = "1.0.0"
 description = "A daily Arabic word guessing game inspired by Wordle"
 readme = "README.md"
