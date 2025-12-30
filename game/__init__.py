@@ -1,0 +1,1 @@
+# Arabic Wordle Game Module

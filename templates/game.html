@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arabic Wordle - Daily Arabic Word Puzzle</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔤 Arabic Wordle</h1>
+            <p class="subtitle">Guess the Arabic word that fills the blank</p>
+        </header>
+
+        <main>
+            <!-- Daily Sentence -->
+            <div class="sentence-card">
+                <p class="sentence">{{ sentence }}</p>
+                <p class="hint">The word has <strong>{{ target_length }}</strong> letters</p>
+            </div>
+
+            <!-- Error Message -->
+            {% if error %}
+            <div class="error-message">
+                {{ error }}
+            </div>
+            {% endif %}
+
+            <!-- Previous Guesses -->
+            <div class="guesses-container">
+                {% for i in range(max_guesses) %}
+                <div class="guess-row {% if i < guesses|length %}submitted{% else %}empty{% endif %}">
+                    {% if i < feedback|length %}
+                        {% for tile in feedback[i] %}
+                        <div class="tile {{ tile.status }}">{{ tile.letter }}</div>
+                        {% endfor %}
+                    {% else %}
+                        <!-- Empty tiles placeholder -->
+                        {% for j in range(target_length) %}
+                        <div class="tile empty"></div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Game Status -->
+            {% if game_over %}
+            <div class="game-result {% if won %}win{% else %}lose{% endif %}">
+                {% if won %}
+                <h2>🎉 Congratulations!</h2>
+                <p>You guessed it in {{ guesses|length }} {% if guesses|length == 1 %}try{% else %}tries{% endif %}!</p>
+                {% else %}
+                <h2>😔 Game Over</h2>
+                <p>Better luck tomorrow!</p>
+                {% endif %}
+                
+                <div class="answer-reveal">
+                    <h3>The Answer</h3>
+                    <div class="answer-word" dir="rtl">{{ target }}</div>
+                    <p class="pronunciation">{{ pronunciation }} - "{{ meaning }}"</p>
+                    <p class="example" dir="rtl">{{ example }}</p>
+                </div>
+
+                <div class="share-section">
+                    <button id="share-btn" class="btn btn-share" onclick="shareResult()">
+                        📤 Share Result
+                    </button>
+                    <p class="next-puzzle-info">Next puzzle in: <span id="countdown"></span></p>
+                </div>
+            </div>
+            {% else %}
+            <!-- Input Form -->
+            <form action="/guess" method="post" class="guess-form" id="guess-form">
+                <div class="input-group">
+                    <input 
+                        type="text" 
+                        name="guess" 
+                        id="guess-input"
+                        class="guess-input" 
+                        dir="rtl"
+                        placeholder="اكتب كلمة عربية"
+                        autocomplete="off"
+                        autofocus
+                        required
+                    >
+                    <button type="submit" class="btn btn-submit">Guess</button>
+                </div>
+                <p class="remaining">{{ remaining_guesses }} guesses remaining</p>
+            </form>
+            {% endif %}
+
+            <!-- On-Screen Keyboard -->
+            {% if not game_over %}
+            <div class="keyboard" id="keyboard">
+                <div class="keyboard-row">
+                    <button type="button" class="key" data-key="ض">ض</button>
+                    <button type="button" class="key" data-key="ص">ص</button>
+                    <button type="button" class="key" data-key="ث">ث</button>
+                    <button type="button" class="key" data-key="ق">ق</button>
+                    <button type="button" class="key" data-key="ف">ف</button>
+                    <button type="button" class="key" data-key="غ">غ</button>
+                    <button type="button" class="key" data-key="ع">ع</button>
+                    <button type="button" class="key" data-key="ه">ه</button>
+                    <button type="button" class="key" data-key="خ">خ</button>
+                    <button type="button" class="key" data-key="ح">ح</button>
+                    <button type="button" class="key" data-key="ج">ج</button>
+                </div>
+                <div class="keyboard-row">
+                    <button type="button" class="key" data-key="ش">ش</button>
+                    <button type="button" class="key" data-key="س">س</button>
+                    <button type="button" class="key" data-key="ي">ي</button>
+                    <button type="button" class="key" data-key="ب">ب</button>
+                    <button type="button" class="key" data-key="ل">ل</button>
+                    <button type="button" class="key" data-key="ا">ا</button>
+                    <button type="button" class="key" data-key="ت">ت</button>
+                    <button type="button" class="key" data-key="ن">ن</button>
+                    <button type="button" class="key" data-key="م">م</button>
+                    <button type="button" class="key" data-key="ك">ك</button>
+                    <button type="button" class="key" data-key="ة">ة</button>
+                </div>
+                <div class="keyboard-row">
+                    <button type="button" class="key key-wide" data-key="ENTER">Enter</button>
+                    <button type="button" class="key" data-key="ئ">ئ</button>
+                    <button type="button" class="key" data-key="ء">ء</button>
+                    <button type="button" class="key" data-key="ؤ">ؤ</button>
+                    <button type="button" class="key" data-key="ر">ر</button>
+                    <button type="button" class="key" data-key="ى">ى</button>
+                    <button type="button" class="key" data-key="ة">ة</button>
+                    <button type="button" class="key" data-key="و">و</button>
+                    <button type="button" class="key" data-key="ز">ز</button>
+                    <button type="button" class="key" data-key="ظ">ظ</button>
+                    <button type="button" class="key key-wide" data-key="BACKSPACE">⌫</button>
+                </div>
+                <div class="keyboard-row">
+                    <button type="button" class="key" data-key="ط">ط</button>
+                    <button type="button" class="key" data-key="د">د</button>
+                    <button type="button" class="key" data-key="ذ">ذ</button>
+                    <button type="button" class="key" data-key="أ">أ</button>
+                    <button type="button" class="key" data-key="إ">إ</button>
+                    <button type="button" class="key" data-key="آ">آ</button>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Legend -->
+            <div class="legend">
+                <h4>How to Play</h4>
+                <div class="legend-items">
+                    <div class="legend-item">
+                        <div class="tile-example correct">ك</div>
+                        <span>Correct position</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="tile-example present">ت</div>
+                        <span>Wrong position</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="tile-example absent">ب</div>
+                        <span>Not in word</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>A new word every day • Same word for everyone worldwide</p>
+            <form action="/reset" method="post" style="display: inline;">
+                <button type="submit" class="btn btn-reset">Reset Today's Game</button>
+            </form>
+        </footer>
+    </div>
+
+    <script src="/static/js/game.js"></script>
+</body>
+</html>
