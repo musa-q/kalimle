@@ -266,22 +266,24 @@ def count_arabic_letters(text: str) -> int:
 def normalize_arabic(text: str) -> str:
     """
     Normalize Arabic text by removing diacritics and normalizing characters.
+    Treats all alif/hamza variations as the same character.
     """
     # Remove diacritics
     text = remove_diacritics(text)
-    
-    # Normalize alef variations
+
+    # Normalize all alif and hamza variations to plain alif
+    # This includes: أ إ آ ٱ ء ؤ ئ
     text = text.replace('أ', 'ا')
     text = text.replace('إ', 'ا')
     text = text.replace('آ', 'ا')
     text = text.replace('ٱ', 'ا')
-    
+    text = text.replace('ء', 'ا')  # Standalone hamza
+    text = text.replace('ؤ', 'ا')  # Hamza on waw
+    text = text.replace('ئ', 'ا')  # Hamza on yeh
+
     # Normalize teh marbuta and heh
     text = text.replace('ة', 'ه')
-    
-    # Normalize yeh variations
-    text = text.replace('ى', 'ي')
-    
+
     return text.strip()
 
 
@@ -289,7 +291,7 @@ def validate_guess(guess: str, target: str) -> List[Dict]:
     """
     Validate a guess against the target word.
     Returns a list of letter feedback dictionaries.
-    
+
     Each dict contains:
     - letter: the Arabic letter
     - status: 'correct' (green), 'present' (yellow), or 'absent' (gray)
@@ -297,18 +299,18 @@ def validate_guess(guess: str, target: str) -> List[Dict]:
     # Normalize both strings
     guess_normalized = normalize_arabic(guess)
     target_normalized = normalize_arabic(target)
-    
+
     # Use original guess letters for display but normalized for comparison
     guess_letters = list(guess)
     target_letters = list(target_normalized)
-    
+
     result = []
     target_letter_counts = {}
-    
+
     # Count letters in target
     for letter in target_letters:
         target_letter_counts[letter] = target_letter_counts.get(letter, 0) + 1
-    
+
     # First pass: mark correct positions (green)
     temp_result = [None] * len(guess_letters)
     for i, letter in enumerate(guess_letters):
@@ -316,19 +318,19 @@ def validate_guess(guess: str, target: str) -> List[Dict]:
         if i < len(target_letters) and normalized_letter == target_letters[i]:
             temp_result[i] = {'letter': letter, 'status': 'correct'}
             target_letter_counts[normalized_letter] -= 1
-    
+
     # Second pass: mark present but wrong position (yellow) or absent (gray)
     for i, letter in enumerate(guess_letters):
         if temp_result[i] is not None:
             continue
-        
+
         normalized_letter = normalize_arabic(letter)
         if normalized_letter in target_letter_counts and target_letter_counts[normalized_letter] > 0:
             temp_result[i] = {'letter': letter, 'status': 'present'}
             target_letter_counts[normalized_letter] -= 1
         else:
             temp_result[i] = {'letter': letter, 'status': 'absent'}
-    
+
     return temp_result
 
 
@@ -344,14 +346,14 @@ def validate_guess_length(guess: str, target: str) -> Tuple[bool, str]:
     """
     guess_len = count_arabic_letters(guess)
     target_len = count_arabic_letters(target)
-    
+
     if guess_len == 0:
         return False, "Please enter a guess"
     elif guess_len < target_len:
         return False, f"Too short! The word has {target_len} letters"
     elif guess_len > target_len:
         return False, f"Too long! The word has {target_len} letters"
-    
+
     return True, ""
 
 
