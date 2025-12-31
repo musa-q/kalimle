@@ -9,12 +9,18 @@
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🔤 kalimle</h1>
-            <p class="subtitle">Guess the Arabic word that fills the blank</p>
-        </header>
+    <header class="navbar">
+        <div class="nav-left">
+        </div>
+        <div class="nav-center">
+            <h1>kalimle</h1>
+        </div>
+        <div class="nav-right">
+            <button id="help-btn" class="icon-btn" aria-label="Help">?</button>
+        </div>
+    </header>
 
+    <div class="container">
         <main>
             <!-- Daily Sentence -->
             <div class="sentence-card">
@@ -82,7 +88,7 @@
                         id="guess-input"
                         class="guess-input"
                         dir="rtl"
-                        placeholder="اكتب كلمة عربية"
+                        placeholder="Write your guess here"
                         autocomplete="off"
                         autocorrect="off"
                         autocapitalize="off"
@@ -129,51 +135,76 @@
                 </div>
                 <div class="keyboard-row">
                     <button type="button" class="key key-wide" data-key="ENTER">Enter</button>
-                    <button type="button" class="key" data-key="ئ">ئ</button>
-                    <button type="button" class="key" data-key="ء">ء</button>
-                    <button type="button" class="key" data-key="ؤ">ؤ</button>
+                    <button type="button" class="key" data-key="ط">ط</button>
                     <button type="button" class="key" data-key="ر">ر</button>
                     <button type="button" class="key" data-key="ى">ى</button>
-                    <button type="button" class="key" data-key="ة">ة</button>
                     <button type="button" class="key" data-key="و">و</button>
                     <button type="button" class="key" data-key="ز">ز</button>
                     <button type="button" class="key" data-key="ظ">ظ</button>
-                    <button type="button" class="key key-wide" data-key="BACKSPACE">⌫</button>
-                </div>
-                <div class="keyboard-row">
-                    <button type="button" class="key" data-key="ط">ط</button>
                     <button type="button" class="key" data-key="د">د</button>
                     <button type="button" class="key" data-key="ذ">ذ</button>
-                    <button type="button" class="key" data-key="أ">أ</button>
-                    <button type="button" class="key" data-key="إ">إ</button>
-                    <button type="button" class="key" data-key="آ">آ</button>
+                    <button type="button" class="key key-wide" data-key="BACKSPACE">⌫</button>
                 </div>
             </div>
             {% endif %}
-
-            <!-- Legend -->
-            <div class="legend">
-                <h4>How to Play</h4>
-                <div class="legend-items">
-                    <div class="legend-item">
-                        <div class="tile-example correct">ك</div>
-                        <span>Correct position</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="tile-example present">ت</div>
-                        <span>Wrong position</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="tile-example absent">ب</div>
-                        <span>Not in word</span>
-                    </div>
-                </div>
-            </div>
         </main>
 
         <footer>
             <p>🌍 A new word every day • Same word for everyone worldwide</p>
         </footer>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>How to Play</h2>
+                <button id="close-modal" class="close-btn" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-description">Guess the Arabic word that fills the blank in 6 tries.</p>
+
+                <div class="modal-section">
+                    <h3>Rules</h3>
+                    <ul>
+                        <li>Each guess must be a valid Arabic word</li>
+                        <li>The word must match the length shown</li>
+                        <li>After each guess, the color of the tiles will show how close you are</li>
+                    </ul>
+                </div>
+
+                <div class="modal-section">
+                    <h3>Examples</h3>
+                    <div class="example-row">
+                        <div class="tile-example correct">ك</div>
+                        <div class="example-text">
+                            <strong>Correct position</strong>
+                            <p>The letter is in the word and in the correct spot</p>
+                        </div>
+                    </div>
+                    <div class="example-row">
+                        <div class="tile-example present">ت</div>
+                        <div class="example-text">
+                            <strong>Wrong position</strong>
+                            <p>The letter is in the word but in the wrong spot</p>
+                        </div>
+                    </div>
+                    <div class="example-row">
+                        <div class="tile-example absent">ب</div>
+                        <div class="example-text">
+                            <strong>Not in word</strong>
+                            <p>The letter is not in the word</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-section">
+                    <h3>Note</h3>
+                    <p>All forms of alif/hamza (أ إ آ ء ؤ ئ) are treated as ا</p>
+                    <p>Teh marbuta (ة) is treated as heh (ه)</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="/static/js/game.js"></script>
