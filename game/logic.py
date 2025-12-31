@@ -266,23 +266,24 @@ def count_arabic_letters(text: str) -> int:
 def normalize_arabic(text: str) -> str:
     """
     Normalize Arabic text by removing diacritics and normalizing characters.
-    Treats all alif/hamza variations as the same character.
+    Only normalizes alif variations (أ إ آ) to plain alif (ا).
+    Keeps hamza forms (ء ؤ ئ) and teh marbuta (ة) as distinct characters.
     """
     # Remove diacritics
     text = remove_diacritics(text)
 
-    # Normalize all alif and hamza variations to plain alif
-    # This includes: أ إ آ ٱ ء ؤ ئ
+    # Normalize only alif variations to plain alif
+    # This includes: أ إ آ ٱ
     text = text.replace('أ', 'ا')
     text = text.replace('إ', 'ا')
     text = text.replace('آ', 'ا')
     text = text.replace('ٱ', 'ا')
-    text = text.replace('ء', 'ا')  # Standalone hamza
-    text = text.replace('ؤ', 'ا')  # Hamza on waw
-    text = text.replace('ئ', 'ا')  # Hamza on yeh
 
-    # Normalize teh marbuta and heh
-    text = text.replace('ة', 'ه')
+    # Keep these as distinct characters:
+    # ء (standalone hamza)
+    # ؤ (hamza on waw)
+    # ئ (hamza on yeh)
+    # ة (teh marbuta)
 
     return text.strip()
 

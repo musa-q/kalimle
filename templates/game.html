@@ -100,7 +100,6 @@
                     >
                     <button type="submit" class="btn btn-submit" aria-label="Submit guess">Guess</button>
                 </div>
-                <p class="remaining">📊 {{ remaining_guesses }} guesses remaining</p>
             </form>
             {% endif %}
 
@@ -134,16 +133,21 @@
                     <button type="button" class="key" data-key="ة">ة</button>
                 </div>
                 <div class="keyboard-row">
-                    <button type="button" class="key key-wide" data-key="ENTER">Enter</button>
                     <button type="button" class="key" data-key="ط">ط</button>
+                    <button type="button" class="key" data-key="ء">ء</button>
+                    <button type="button" class="key" data-key="ؤ">ؤ</button>
                     <button type="button" class="key" data-key="ر">ر</button>
                     <button type="button" class="key" data-key="ى">ى</button>
+                    <button type="button" class="key" data-key="ئ">ئ</button>
                     <button type="button" class="key" data-key="و">و</button>
                     <button type="button" class="key" data-key="ز">ز</button>
                     <button type="button" class="key" data-key="ظ">ظ</button>
                     <button type="button" class="key" data-key="د">د</button>
                     <button type="button" class="key" data-key="ذ">ذ</button>
+                </div>
+                <div class="keyboard-row keyboard-row-bottom">
                     <button type="button" class="key key-wide" data-key="BACKSPACE">⌫</button>
+                    <button type="button" class="key key-wide" data-key="ENTER">Enter</button>
                 </div>
             </div>
             {% endif %}
@@ -199,9 +203,10 @@
                 </div>
 
                 <div class="modal-section">
-                    <h3>Note</h3>
-                    <p>All forms of alif/hamza (أ إ آ ء ؤ ئ) are treated as ا</p>
-                    <p>Teh marbuta (ة) is treated as heh (ه)</p>
+                    <h3>Arabic Letter Rules</h3>
+                    <p><strong>Alif variations:</strong> أ إ آ are treated as ا</p>
+                    <p><strong>Distinct characters:</strong> ء ؤ ئ and ة are kept separate</p>
+                    <p class="note-small">Use the exact hamza form and teh marbuta as shown in the answer</p>
                 </div>
             </div>
         </div>
