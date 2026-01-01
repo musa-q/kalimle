@@ -7,19 +7,46 @@
     <title>Admin Panel - kalimle</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="/static/css/admin.css">
+    <link rel="stylesheet" href="/static/css/admin_modern.css">
 </head>
 <body>
-    <header class="navbar">
+    <header class="navbar admin-navbar">
         <div class="nav-left">
-            <a href="/" class="back-link">← Back to Game</a>
+            <a href="/" class="back-link">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="19" y1="12" x2="5" y2="12"/>
+                    <polyline points="12 19 5 12 12 5"/>
+                </svg>
+                Back to Game
+            </a>
         </div>
         <div class="nav-center">
-            <h1>kalimle Admin</h1>
+            <h1>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                    <path d="M2 17l10 5 10-5"/>
+                    <path d="M2 12l10 5 10-5"/>
+                </svg>
+                kalimle Admin
+            </h1>
         </div>
         <div class="nav-right">
-            <span class="user-email">{{ user_email }}</span>
+            <span class="user-badge">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                </svg>
+                {{ user_email }}
+            </span>
             <form action="/admin/logout" method="post" style="display: inline;">
-                <button type="submit" class="btn btn-secondary btn-small">Logout</button>
+                <button type="submit" class="btn btn-secondary btn-small">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                    Logout
+                </button>
             </form>
         </div>
     </header>
@@ -27,15 +54,36 @@
     <div class="admin-container">
         <!-- Status Messages -->
         {% if success %}
-        <div class="alert alert-success">{{ success }}</div>
+        <div class="alert alert-success">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            {{ success }}
+        </div>
         {% endif %}
         {% if error %}
-        <div class="alert alert-error">{{ error }}</div>
+        <div class="alert alert-error">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="15" y1="9" x2="9" y2="15"/>
+                <line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+            {{ error }}
+        </div>
         {% endif %}
 
         <!-- Today's Puzzle Info -->
         <section class="admin-section">
-            <h2>📅 Today's Puzzle</h2>
+            <h2>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                Today's Puzzle
+            </h2>
             <div class="today-puzzle-card">
                 {% if today_puzzle %}
                 <p><strong>Sentence:</strong> {{ today_puzzle.sentence }}</p>
@@ -51,7 +99,14 @@
 
         <!-- Add Single Puzzle -->
         <section class="admin-section">
-            <h2>➕ Add Single Puzzle</h2>
+            <h2>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="16"/>
+                    <line x1="8" y1="12" x2="16" y2="12"/>
+                </svg>
+                Add Single Puzzle
+            </h2>
             <form action="/admin/puzzle/add" method="post" class="puzzle-form">
                 <div class="form-group">
                     <label for="sentence">English Sentence (use ___ for blank):</label>
@@ -90,7 +145,17 @@
 
         <!-- AI Prompt Generator -->
         <section class="admin-section">
-            <h2>🤖 AI Puzzle Generator</h2>
+            <h2>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                    <polyline points="7.5 4.21 12 6.81 16.5 4.21"/>
+                    <polyline points="7.5 19.79 7.5 14.6 3 12"/>
+                    <polyline points="21 12 16.5 14.6 16.5 19.79"/>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                    <line x1="12" y1="22.08" x2="12" y2="12"/>
+                </svg>
+                AI Prompt Generator
+            </h2>
             <p class="section-description">Copy this prompt to ChatGPT/Claude to generate puzzles, then paste the JSON response into Bulk Add below.</p>
 
             <div class="form-group">
@@ -144,7 +209,15 @@ Return ONLY the JSON array, no additional text or explanation.</textarea>
 
         <!-- Bulk Add Puzzles -->
         <section class="admin-section">
-            <h2>📦 Bulk Add Puzzles</h2>
+            <h2>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/>
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                    <line x1="12" y1="22.08" x2="12" y2="12"/>
+                </svg>
+                Bulk Add Puzzles (JSON)
+            </h2>
             <form action="/admin/puzzle/bulk-add" method="post" class="puzzle-form">
                 <div class="form-group">
                     <label for="bulk_puzzles">Paste JSON array of puzzles:</label>
@@ -221,7 +294,13 @@ Return ONLY the JSON array, no additional text or explanation.</textarea>
 
         <!-- Schedule Puzzle -->
         <section class="admin-section">
-            <h2>📆 Schedule Puzzle for Specific Date</h2>
+            <h2>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                Schedule Puzzle for Specific Date
+            </h2>
             <form action="/admin/puzzle/schedule" method="post" class="puzzle-form">
                 <div class="form-row">
                     <div class="form-group">
@@ -244,7 +323,14 @@ Return ONLY the JSON array, no additional text or explanation.</textarea>
 
         <!-- Supabase Status -->
         <section class="admin-section">
-            <h2>🔧 Database Status</h2>
+            <h2>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                </svg>
+                Database Status
+            </h2>
             <div class="status-card">
                 {% if supabase_configured %}
                 <p class="status-ok">✅ Supabase is connected</p>
