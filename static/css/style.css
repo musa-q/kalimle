@@ -794,7 +794,7 @@ footer p {
     justify-content: center;
     gap: 4px;
     margin-bottom: 6px;
-    direction: rtl;
+    direction: ltr;
 }
 
 .keyboard-row-bottom {

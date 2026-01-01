@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#121213">
+    <title>Admin Login - kalimle</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <link rel="stylesheet" href="/static/css/admin_modern.css">
+</head>
+<body>
+    <header class="navbar">
+        <div class="nav-left">
+            <a href="/" class="back-link">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="19" y1="12" x2="5" y2="12"/>
+                    <polyline points="12 19 5 12 12 5"/>
+                </svg>
+                Back to Game
+            </a>
+        </div>
+        <div class="nav-center">
+            <h1>kalimle</h1>
+        </div>
+        <div class="nav-right"></div>
+    </header>
+
+    <div class="container">
+        <main>
+            <div class="login-card-simple">
+                <h2>Login</h2>
+
+                {% if error %}
+                <div class="error-message">
+                    {{ error }}
+                </div>
+                {% endif %}
+
+                <form action="/admin/login" method="post" class="login-form-simple">
+                    {% if supabase_configured %}
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" required
+                               placeholder="admin@example.com" autofocus>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required
+                               placeholder="Enter your password">
+                    </div>
+                    {% else %}
+                    <div class="form-group">
+                        <label for="password">Admin Password</label>
+                        <input type="password" id="password" name="password" required
+                               placeholder="Enter admin password" autofocus>
+                    </div>
+                    {% endif %}
+
+                    <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Ensure Enter key submits the form
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('.login-form-simple');
+            const inputs = form.querySelectorAll('input');
+            
+            inputs.forEach(input => {
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        form.submit();
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
