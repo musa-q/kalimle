@@ -1,0 +1,405 @@
+/* Admin Panel Styles */
+
+.admin-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 72px 20px 20px 20px;
+}
+
+.admin-section {
+    background: var(--tile-bg);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    border: 1px solid var(--border-color);
+}
+
+.admin-section h2 {
+    margin: 0 0 20px 0;
+    font-size: 1.4rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 12px;
+}
+
+/* Today's Puzzle Card */
+.today-puzzle-card {
+    background: rgba(83, 141, 78, 0.1);
+    border: 1px solid var(--correct-color);
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.today-puzzle-card p {
+    margin: 8px 0;
+    color: var(--text-primary);
+}
+
+.today-date {
+    margin-top: 16px !important;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-secondary) !important;
+}
+
+/* Form Styles */
+.puzzle-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    padding: 12px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--correct-color);
+}
+
+.form-group textarea {
+    font-family: 'Courier New', monospace;
+    resize: vertical;
+    min-height: 150px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+@media (max-width: 600px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Buttons */
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: var(--correct-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #4a7c46;
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background: var(--present-color);
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #a18832;
+}
+
+.btn-danger {
+    background: #c9473b;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #a33a30;
+}
+
+.btn-small {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+}
+
+.btn-full {
+    width: 100%;
+}
+
+/* Alerts */
+.alert {
+    padding: 16px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    transition: opacity 0.3s;
+    font-weight: 500;
+    font-size: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.alert-success {
+    background: rgba(83, 141, 78, 0.3);
+    border: 2px solid var(--correct-color);
+    color: #a8e6a1;
+}
+
+.alert-error {
+    background: rgba(201, 71, 59, 0.3);
+    border: 2px solid #c9473b;
+    color: #ff8f84;
+    font-weight: 600;
+}
+
+/* Puzzles Table */
+.puzzles-table-wrapper {
+    overflow-x: auto;
+}
+
+.puzzles-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.puzzles-table th,
+.puzzles-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.puzzles-table th {
+    background: rgba(255, 255, 255, 0.05);
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+}
+
+.puzzles-table tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.puzzles-table tr.inactive {
+    opacity: 0.5;
+}
+
+.actions-cell {
+    white-space: nowrap;
+    display: flex;
+    gap: 8px;
+}
+
+/* Status Badge */
+.status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-badge.active {
+    background: rgba(83, 141, 78, 0.2);
+    color: var(--correct-color);
+}
+
+.status-badge.inactive {
+    background: rgba(128, 128, 128, 0.2);
+    color: #888;
+}
+
+.no-puzzles {
+    color: var(--text-secondary);
+    font-style: italic;
+    padding: 20px;
+    text-align: center;
+}
+
+/* Status Card */
+.status-card {
+    padding: 16px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.status-card ol {
+    margin: 12px 0 0 20px;
+    color: var(--text-secondary);
+}
+
+.status-card li {
+    margin: 8px 0;
+}
+
+.status-card code {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.status-ok {
+    color: var(--correct-color);
+    font-weight: 600;
+}
+
+.status-warning {
+    color: var(--present-color);
+    font-weight: 600;
+}
+
+/* AI Prompt Generator */
+.section-description {
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+}
+
+#ai_prompt_output {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+#ai_prompt {
+    font-family: 'Courier New', monospace;
+    background: rgba(255, 255, 255, 0.05);
+    resize: vertical;
+}
+
+.ai-instructions {
+    background: rgba(83, 141, 78, 0.1);
+    border: 1px solid var(--correct-color);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 16px;
+}
+
+.ai-instructions h4 {
+    margin: 0 0 12px 0;
+    color: var(--correct-color);
+    font-size: 1rem;
+}
+
+.ai-instructions ol {
+    margin: 0 0 0 20px;
+    padding: 0;
+    color: var(--text-primary);
+}
+
+.ai-instructions li {
+    margin: 8px 0;
+    line-height: 1.5;
+}
+
+/* Login Page */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 60px);
+    padding: 20px;
+}
+
+.login-card {
+    background: var(--tile-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 32px;
+    width: 100%;
+    max-width: 400px;
+}
+
+.login-card h2 {
+    margin: 0 0 24px 0;
+    text-align: center;
+    color: var(--text-primary);
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.login-hint {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+/* Back Link */
+.back-link {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.2s;
+}
+
+.back-link:hover {
+    color: var(--text-primary);
+}
+
+/* User Email Display */
+.user-email {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-right: 12px;
+}
+
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .admin-container {
+        padding: 12px;
+    }
+
+    .admin-section {
+        padding: 16px;
+    }
+
+    .puzzles-table {
+        font-size: 0.8rem;
+    }
+
+    .puzzles-table th,
+    .puzzles-table td {
+        padding: 8px;
+    }
+
+    .actions-cell {
+        flex-direction: column;
+        gap: 4px;
+    }
+}

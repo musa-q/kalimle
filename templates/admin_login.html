@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#121213">
+    <title>Admin Login - kalimle</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body>
+    <header class="navbar">
+        <div class="nav-left">
+            <a href="/" class="back-link">← Back to Game</a>
+        </div>
+        <div class="nav-center">
+            <h1>kalimle Admin</h1>
+        </div>
+        <div class="nav-right"></div>
+    </header>
+
+    <div class="login-container">
+        <div class="login-card">
+            <h2>🔐 Admin Login</h2>
+            
+            {% if error %}
+            <div class="alert alert-error">{{ error }}</div>
+            {% endif %}
+
+            <form action="/admin/login" method="post" class="login-form">
+                {% if supabase_configured %}
+                <!-- Supabase Auth: Email + Password -->
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email" required 
+                           placeholder="admin@example.com" autofocus>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" required 
+                           placeholder="Enter your password">
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Login with Supabase</button>
+                
+                <p class="login-hint">
+                    Login using your Supabase Auth credentials.<br>
+                    Create admin users in the Supabase Dashboard → Authentication → Users.
+                </p>
+                {% else %}
+                <!-- Fallback: Password only -->
+                <div class="form-group">
+                    <label for="password">Admin Password:</label>
+                    <input type="password" id="password" name="password" required 
+                           placeholder="Enter admin password" autofocus>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Login</button>
+
+                <p class="login-hint">
+                    The admin password is set via the <code>ADMIN_SECRET</code> environment variable.<br><br>
+                    <strong>For better security:</strong> Configure Supabase to use email/password authentication.
+                </p>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+</body>
+</html>
