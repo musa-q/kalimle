@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="{{ lang_code }}" dir="{{ text_direction }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#121213">
+    <meta name="description" content="Daily Arabic word puzzle game - Guess the Arabic word that fills the blank">
+    <title>{{ app_name }} - Daily Arabic Word Puzzle</title>
+    <link rel="stylesheet" href="/static/shared/css/base.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header class="navbar">
+        <div class="nav-left">
+            <button id="help-btn" class="icon-btn" aria-label="Help">?</button>
+        </div>
+        <div class="nav-center">
+            <h1>{{ app_name }}</h1>
+        </div>
+        <div class="nav-right">
+        </div>
+    </header>
+
+    <div class="container">
+        <main>
+            <!-- Daily Sentence -->
+            <div class="sentence-card">
+                <p class="sentence" dir="ltr">{{ sentence }}</p>
+                <p class="hint">💡 The word has <strong>{{ target_length }}</strong> letters</p>
+            </div>
+
+            <!-- Error Message -->
+            {% if error %}
+            <div class="error-message">
+                {{ error }}
+            </div>
+            {% endif %}
+
+            <!-- Previous Guesses -->
+            <div class="guesses-container">
+                {% for i in range(max_guesses) %}
+                <div class="guess-row {% if i < guesses|length %}submitted{% else %}empty{% endif %}">
+                    {% if i < feedback|length %}
+                        {% for tile in feedback[i] %}
+                        <div class="tile {{ tile.status }}" data-keyboard-letter="{{ tile.keyboard_letter }}" data-guessed-letter="{{ tile.guessed_letter }}">{{ tile.letter }}</div>
+                        {% endfor %}
+                    {% else %}
+                        {% for j in range(target_length) %}
+                        <div class="tile empty"></div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Game Status -->
+            {% if game_over %}
+            <div class="game-result {% if won %}win{% else %}lose{% endif %}">
+                {% if won %}
+                <h2>🎉 !مبروك</h2>
+                <p>You guessed it in {{ guesses|length }} {% if guesses|length == 1 %}try{% else %}tries{% endif %}!</p>
+                {% else %}
+                <h2>😔 Game Over</h2>
+                <p>Better luck tomorrow!</p>
+                {% endif %}
+
+                <div class="answer-reveal">
+                    <h3>The Answer</h3>
+                    <div class="answer-word" dir="rtl">{{ target }}</div>
+                    <p class="pronunciation">{{ pronunciation }} - "{{ meaning }}"</p>
+                    <p class="example" dir="rtl">{{ example }}</p>
+                </div>
+
+                <div class="share-section">
+                    <button id="share-btn" class="btn btn-share" onclick="WordleShared.shareResult('{{ app_name }}')" aria-label="Share your result">
+                        📤 Share Result
+                    </button>
+                    <p class="next-puzzle-info">⏰ Next puzzle in: <span id="countdown"></span></p>
+                </div>
+            </div>
+            {% else %}
+            <!-- Input Form -->
+            <form action="/guess" method="post" class="guess-form" id="guess-form">
+                <div class="input-group">
+                    <input
+                        type="text"
+                        name="guess"
+                        id="guess-input"
+                        class="guess-input"
+                        dir="rtl"
+                        placeholder="Write your guess here"
+                        autocomplete="off"
+                        autocorrect="off"
+                        autocapitalize="off"
+                        spellcheck="false"
+                        inputmode="text"
+                        autofocus
+                        required
+                        aria-label="Enter your Arabic word guess"
+                    >
+                    <button type="submit" class="btn btn-submit" aria-label="Submit guess">Guess</button>
+                </div>
+            </form>
+            {% endif %}
+
+            <!-- On-Screen Keyboard -->
+            {% if not game_over %}
+            <div class="keyboard" id="keyboard">
+                {% for row in keyboard_layout %}
+                <div class="keyboard-row">
+                    {% for key in row %}
+                    <button type="button" class="key" data-key="{{ key }}">{{ key }}</button>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+                <div class="keyboard-row keyboard-row-bottom">
+                    <button type="button" class="key key-wide" data-key="ENTER">Enter</button>
+                    <button type="button" class="key key-wide" data-key="BACKSPACE">⌫</button>
+                </div>
+            </div>
+            {% endif %}
+        </main>
+
+        <footer>
+            <p>🌍 A new word every day • Same word for everyone worldwide</p>
+        </footer>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="modal">
+        <div class="modal-content" dir="ltr">
+            <div class="modal-header">
+                <h2>{{ help_text.title }}</h2>
+                <button id="close-modal" class="close-btn" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-description">{{ help_text.description }}</p>
+
+                <div class="modal-section">
+                    <h3>Rules</h3>
+                    <ul>
+                        {% for rule in help_text.rules %}
+                        <li>{{ rule }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="modal-section">
+                    <h3>Examples</h3>
+                    <div class="example-row">
+                        <div class="tile-example correct">ك</div>
+                        <div class="example-text">
+                            <strong>Correct position</strong>
+                            <p>The letter is in the word and in the correct spot</p>
+                        </div>
+                    </div>
+                    <div class="example-row">
+                        <div class="tile-example present">ت</div>
+                        <div class="example-text">
+                            <strong>Wrong position</strong>
+                            <p>The letter is in the word but in the wrong spot</p>
+                        </div>
+                    </div>
+                    <div class="example-row">
+                        <div class="tile-example absent">ب</div>
+                        <div class="example-text">
+                            <strong>Not in word</strong>
+                            <p>The letter is not in the word</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-section">
+                    <h3>{{ help_text.letter_rules.title }}</h3>
+                    <p><strong>{{ help_text.letter_rules.alif_note }}</strong></p>
+                    <p><strong>{{ help_text.letter_rules.distinct_note }}</strong></p>
+                    <p class="note-small">{{ help_text.letter_rules.usage_note }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Arabic letter equivalence groups for keyboard marking
+        window.LETTER_EQUIVALENCES = {
+            'ا': ['ا', 'أ', 'إ', 'آ', 'ٱ'],
+            'أ': ['ا', 'أ', 'إ', 'آ', 'ٱ'],
+            'إ': ['ا', 'أ', 'إ', 'آ', 'ٱ'],
+            'آ': ['ا', 'أ', 'إ', 'آ', 'ٱ'],
+            'ٱ': ['ا', 'أ', 'إ', 'آ', 'ٱ'],
+            'ء': ['ء', 'ؤ', 'ئ'],
+            'ؤ': ['ء', 'ؤ', 'ئ'],
+            'ئ': ['ء', 'ؤ', 'ئ'],
+            'ه': ['ه', 'ة'],
+            'ة': ['ه', 'ة']
+        };
+    </script>
+    <script src="/static/shared/js/game.js"></script>
+</body>
+</html>
