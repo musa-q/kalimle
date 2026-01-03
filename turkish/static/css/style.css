@@ -1,0 +1,16 @@
+/* Turkish-specific styles for kelimle */
+
+/* Turkish uses Latin alphabet, left-to-right */
+.tile {
+    text-transform: lowercase;
+}
+
+.key {
+    text-transform: lowercase;
+}
+
+/* Slightly different primary color for Turkish version (optional) */
+:root {
+    /* You can customize the Turkish theme here */
+    /* --tile-correct: #6aaa64; */
+}

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ app_name }} - Admin Panel</title>
+    <link rel="stylesheet" href="/static/shared/css/admin.css">
+</head>
+<body>
+    <header class="admin-header">
+        <div class="admin-header-content">
+            <h1>{{ app_name }} Admin</h1>
+            <div class="admin-user">
+                <span>{{ user_email }}</span>
+                <form action="/admin/logout" method="post" style="display: inline;">
+                    <button type="submit" class="btn btn-small btn-outline">Logout</button>
+                </form>
+            </div>
+        </div>
+    </header>
+
+    <div class="admin-container">
+        {% if success %}
+        <div class="alert alert-success">{{ success }}</div>
+        {% endif %}
+        {% if error %}
+        <div class="alert alert-error">{{ error }}</div>
+        {% endif %}
+
+        <!-- Today's Puzzle -->
+        <div class="card">
+            <h2>📅 Today's Puzzle</h2>
+            <div style="padding: 16px; background: var(--bg-color); border-radius: 8px;">
+                <p><strong>Sentence:</strong> {{ today_puzzle.sentence }}</p>
+                <p><strong>Target:</strong> {{ today_puzzle.target }}</p>
+                <p><strong>Meaning:</strong> {{ today_puzzle.meaning }}</p>
+                <p><strong>Date:</strong> {{ today_date }}</p>
+            </div>
+        </div>
+
+        <!-- AI Prompt Helper -->
+        <div class="card">
+            <h2>🤖 AI Puzzle Generator Prompt</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 16px;">Copy this prompt to ChatGPT or Claude to generate puzzles:</p>
+            <div style="position: relative;">
+                <textarea id="ai-prompt" readonly style="width: 100%; min-height: 200px; padding: 12px; background: var(--bg-color); border: 1px solid var(--tile-border); border-radius: 8px; font-family: monospace; font-size: 0.9rem; color: var(--text-color); resize: vertical;">Generate 20 unique Turkish word puzzles for a Wordle-style game in this exact JSON format:
+
+[
+  {
+    "sentence": "English sentence with ___ for the blank",
+    "target": "Turkish word",
+    "pronunciation": "Pronunciation guide",
+    "meaning": "English meaning",
+    "example": "Example sentence in Turkish using the word"
+  }
+]
+
+CRITICAL Requirements:
+- Target words must be between 4-7 letters
+- Use standard Turkish vocabulary
+- Include Turkish-specific letters (ç, ğ, ı, İ, ö, ş, ü) where appropriate
+- DIFFICULTY: Medium - not too obvious, but not obscure
+- Bear in mind, this application is for people learning and practicing Turkish
+- Avoid very basic words like "su" or "ev"
+- Use words that require some Turkish knowledge but aren't specialized vocabulary
+- Good examples: intermediate vocabulary, objects, actions, emotions, daily activities
+- Make sentences contextually interesting but clear enough to understand
+- Include pronunciation guide for words with Turkish-specific sounds
+- Include practical example sentences in Turkish
+- Mix different topics: food, family, nature, daily life, objects, emotions, actions, etc.
+- Vary sentence structures and contexts significantly
+- NO duplicate sentences - each must be completely unique
+- Ensure words are recognizable to intermediate Turkish learners
+
+Return ONLY the JSON array, no additional text or explanation</textarea>
+                <button onclick="copyPrompt()" class="btn btn-primary" style="margin-top: 12px;">📋 Copy Prompt</button>
+                <span id="copy-feedback" style="display: none; color: var(--correct-color); margin-left: 12px; font-weight: bold;">✓ Copied!</span>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <!-- Add Single Puzzle -->
+            <div class="card">
+                <h2>➕ Add Puzzle</h2>
+                <form action="/admin/puzzle/add" method="post">
+                    <div class="form-group">
+                        <label for="sentence">English Sentence (with ___)</label>
+                        <input type="text" name="sentence" id="sentence" class="form-control" 
+                               placeholder="I am reading a ___." required>
+                    </div>
+                    <div class="form-group">
+                        <label for="target">Turkish Target Word</label>
+                        <input type="text" name="target" id="target" class="form-control" 
+                               placeholder="kitap" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="pronunciation">Pronunciation</label>
+                        <input type="text" name="pronunciation" id="pronunciation" class="form-control" 
+                               placeholder="ki-tap" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="meaning">Meaning</label>
+                        <input type="text" name="meaning" id="meaning" class="form-control" 
+                               placeholder="book" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="example">Example Sentence (Turkish)</label>
+                        <input type="text" name="example" id="example" class="form-control" 
+                               placeholder="Güzel bir kitap okuyorum.">
+                    </div>
+                    <div class="form-group">
+                        <label for="scheduled_date">Schedule for Date (optional)</label>
+                        <input type="date" name="scheduled_date" id="scheduled_date" class="form-control">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Puzzle</button>
+                </form>
+            </div>
+
+            <!-- Bulk Add -->
+            <div class="card">
+                <h2>📦 Bulk Add Puzzles</h2>
+                <form action="/admin/puzzle/bulk-add" method="post">
+                    <div class="form-group">
+                        <label for="bulk_puzzles">JSON Array of Puzzles</label>
+                        <textarea name="bulk_puzzles" id="bulk_puzzles" class="form-control" 
+                                  style="min-height: 200px;" required
+                                  placeholder='[
+  {
+    "sentence": "I am reading a ___.",
+    "target": "kitap",
+    "pronunciation": "ki-tap",
+    "meaning": "book",
+    "example": "Güzel bir kitap okuyorum."
+  }
+]'></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Bulk Add</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Puzzles List -->
+        <div class="card">
+            <h2>📚 All Puzzles ({{ puzzles|length }})</h2>
+            {% if puzzles %}
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Target</th>
+                            <th>Meaning</th>
+                            <th>Sentence</th>
+                            <th>Scheduled</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for puzzle in puzzles %}
+                        <tr>
+                            <td>{{ puzzle.target }}</td>
+                            <td>{{ puzzle.meaning }}</td>
+                            <td>{{ puzzle.sentence[:40] }}{% if puzzle.sentence|length > 40 %}...{% endif %}</td>
+                            <td>{{ puzzle.scheduled_date or '—' }}</td>
+                            <td>
+                                <span class="badge {% if puzzle.active %}badge-active{% else %}badge-inactive{% endif %}">
+                                    {{ 'Active' if puzzle.active else 'Inactive' }}
+                                </span>
+                            </td>
+                            <td>
+                                <form action="/admin/puzzle/toggle/{{ puzzle.id }}" method="post" style="display: inline;">
+                                    <button type="submit" class="btn btn-small btn-outline">
+                                        {{ 'Deactivate' if puzzle.active else 'Activate' }}
+                                    </button>
+                                </form>
+                                <form action="/admin/puzzle/delete/{{ puzzle.id }}" method="post" style="display: inline;"
+                                      onsubmit="return confirm('Are you sure you want to delete this puzzle?')">
+                                    <button type="submit" class="btn btn-small btn-danger">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p style="color: var(--text-secondary); text-align: center; padding: 40px;">
+                {% if supabase_configured %}
+                No puzzles yet. Add some above!
+                {% else %}
+                ⚠️ Supabase not configured. Using fallback puzzles.
+                {% endif %}
+            </p>
+            {% endif %}
+        </div>
+
+        <!-- Schedule Puzzle -->
+        {% if puzzles %}
+        <div class="card">
+            <h2>📆 Schedule Puzzle</h2>
+            <form action="/admin/puzzle/schedule" method="post" style="display: flex; gap: 16px; align-items: end;">
+                <div class="form-group" style="flex: 1; margin: 0;">
+                    <label for="puzzle_id">Select Puzzle</label>
+                    <select name="puzzle_id" id="puzzle_id" class="form-control">
+                        {% for puzzle in puzzles %}
+                        <option value="{{ puzzle.id }}">{{ puzzle.target }} - {{ puzzle.meaning }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label for="date">Date</label>
+                    <input type="date" name="date" id="date" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Schedule</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+    
+    <script>
+        function copyPrompt() {
+            const promptText = document.getElementById('ai-prompt');
+            const feedback = document.getElementById('copy-feedback');
+            
+            promptText.select();
+            promptText.setSelectionRange(0, 99999); // For mobile devices
+            
+            navigator.clipboard.writeText(promptText.value).then(() => {
+                feedback.style.display = 'inline';
+                setTimeout(() => {
+                    feedback.style.display = 'none';
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
