@@ -7,10 +7,11 @@ from pathlib import Path
 from functools import lru_cache
 from dotenv import load_dotenv
 
-# Load environment variables from THIS directory's .env file
-# This ensures Arabic and Turkish use separate databases
+# Load environment variables from THIS directory's .env file ONLY if it exists
+# Railway environment variables take precedence
 env_path = Path(__file__).parent / ".env"
-load_dotenv(env_path)
+if env_path.exists():
+    load_dotenv(env_path, override=False)  # Don't override existing env vars
 
 
 class Settings:
