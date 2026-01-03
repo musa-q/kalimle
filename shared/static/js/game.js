@@ -174,19 +174,40 @@ function updateKeyboardStatuses(letterStatuses) {
     const keys = document.querySelectorAll('.key[data-key]');
     keys.forEach(key => {
         const letter = key.dataset.key;
-        if (letterStatuses[letter]) {
+        
+        // Check if this letter or any of its equivalents has a status
+        let effectiveStatus = letterStatuses[letter];
+        
+        // Check for letter equivalences (for languages like Arabic)
+        if (window.LETTER_EQUIVALENCES && window.LETTER_EQUIVALENCES[letter]) {
+            const equivalentLetters = window.LETTER_EQUIVALENCES[letter];
+            for (const equiv of equivalentLetters) {
+                if (letterStatuses[equiv]) {
+                    // Priority: correct > present > absent
+                    if (letterStatuses[equiv] === 'correct') {
+                        effectiveStatus = 'correct';
+                        break;
+                    } else if (letterStatuses[equiv] === 'present' && effectiveStatus !== 'correct') {
+                        effectiveStatus = 'present';
+                    } else if (letterStatuses[equiv] === 'absent' && !effectiveStatus) {
+                        effectiveStatus = 'absent';
+                    }
+                }
+            }
+        }
+        
+        if (effectiveStatus) {
             // Priority: correct > present > absent
             const currentStatus = key.classList.contains('correct') ? 'correct' :
                                   key.classList.contains('present') ? 'present' :
                                   key.classList.contains('absent') ? 'absent' : null;
-            const newStatus = letterStatuses[letter];
             
             if (currentStatus !== 'correct') {
-                if (newStatus === 'correct' || 
-                    (newStatus === 'present' && currentStatus !== 'present') ||
-                    (newStatus === 'absent' && !currentStatus)) {
+                if (effectiveStatus === 'correct' || 
+                    (effectiveStatus === 'present' && currentStatus !== 'present') ||
+                    (effectiveStatus === 'absent' && !currentStatus)) {
                     key.classList.remove('correct', 'present', 'absent');
-                    key.classList.add(newStatus);
+                    key.classList.add(effectiveStatus);
                 }
             }
         }

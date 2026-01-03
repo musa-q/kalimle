@@ -2,7 +2,7 @@
 Arabic Language Configuration for kalimle.
 Contains Arabic-specific word validation, normalization, and keyboard layout.
 """
-from typing import List
+from typing import List, Dict
 import sys
 import os
 
@@ -87,6 +87,11 @@ class ArabicWordValidator(BaseWordValidator):
     LANGUAGE_NAME = "Arabic"
     APP_NAME = "kalimle"
     
+    # Define letter equivalence groups
+    ALIF_VARIATIONS = {'ا', 'أ', 'إ', 'آ', 'ٱ'}
+    HAMZA_VARIATIONS = {'ء', 'ؤ', 'ئ'}
+    HA_TA_VARIATIONS = {'ه', 'ة'}
+    
     def normalize_text(self, text: str) -> str:
         """
         Normalize Arabic text by removing diacritics and normalizing characters.
@@ -112,6 +117,97 @@ class ArabicWordValidator(BaseWordValidator):
         # ة (teh marbuta)
         
         return text.strip()
+    
+    def letters_match(self, guess_letter: str, target_letter: str) -> bool:
+        """
+        Check if two letters match, considering Arabic equivalences.
+        Returns True if they're the same or in the same equivalence group.
+        """
+        # Exact match
+        if guess_letter == target_letter:
+            return True
+        
+        # Check alif variations
+        if guess_letter in self.ALIF_VARIATIONS and target_letter in self.ALIF_VARIATIONS:
+            return True
+        
+        # Check hamza variations
+        if guess_letter in self.HAMZA_VARIATIONS and target_letter in self.HAMZA_VARIATIONS:
+            return True
+        
+        # Check ha/ta marbuta
+        if guess_letter in self.HA_TA_VARIATIONS and target_letter in self.HA_TA_VARIATIONS:
+            return True
+        
+        return False
+    
+    def validate_guess(self, guess: str, target: str) -> List[Dict]:
+        """
+        Validate a guess against the target word with Arabic-specific rules.
+        
+        - Treats alif variations (ا أ إ آ) as equivalent
+        - Treats hamza variations (ء ؤ ئ) as equivalent
+        - Treats ه and ة as equivalent
+        - When correct, displays the actual letter from the target
+        - Marks keyboard with the canonical form of equivalent letters
+        """
+        from typing import Dict, List
+        
+        # Remove diacritics from both
+        guess_clean = self.remove_diacritics(guess)
+        target_clean = self.remove_diacritics(target)
+        
+        guess_letters = list(guess_clean)
+        target_letters = list(target_clean)
+        
+        result = []
+        target_letter_counts = {}
+        
+        # Count letters in target (using actual target letters)
+        for letter in target_letters:
+            target_letter_counts[letter] = target_letter_counts.get(letter, 0) + 1
+        
+        # First pass: mark correct positions (green)
+        temp_result = [None] * len(guess_letters)
+        for i, guess_letter in enumerate(guess_letters):
+            if i < len(target_letters):
+                target_letter = target_letters[i]
+                if self.letters_match(guess_letter, target_letter):
+                    # Use the actual target letter for display
+                    temp_result[i] = {
+                        'letter': target_letter,
+                        'status': 'correct',
+                        'keyboard_letter': target_letter  # Mark keyboard with target letter
+                    }
+                    target_letter_counts[target_letter] -= 1
+        
+        # Second pass: mark present but wrong position (yellow) or absent (gray)
+        for i, guess_letter in enumerate(guess_letters):
+            if temp_result[i] is not None:
+                continue
+            
+            # Check if this guessed letter matches any remaining target letter
+            found = False
+            for target_letter, count in target_letter_counts.items():
+                if count > 0 and self.letters_match(guess_letter, target_letter):
+                    # Use the actual target letter for display
+                    temp_result[i] = {
+                        'letter': target_letter,
+                        'status': 'present',
+                        'keyboard_letter': target_letter  # Mark keyboard with target letter
+                    }
+                    target_letter_counts[target_letter] -= 1
+                    found = True
+                    break
+            
+            if not found:
+                temp_result[i] = {
+                    'letter': guess_letter,
+                    'status': 'absent',
+                    'keyboard_letter': guess_letter
+                }
+        
+        return temp_result
     
     def count_letters(self, text: str) -> int:
         """
@@ -151,9 +247,9 @@ LANGUAGE_CONFIG = {
         ],
         "letter_rules": {
             "title": "Arabic Letter Rules",
-            "alif_note": "Alif variations: أ إ آ are treated as ا",
-            "distinct_note": "Distinct characters: ء ؤ ئ and ة are kept separate",
-            "usage_note": "Use the exact hamza form and teh marbuta as shown in the answer"
+            "alif_note": "✨ Alif equivalence: أ إ آ ٱ all match ا (and vice versa)",
+            "distinct_note": "✨ Hamza equivalence: ء ؤ ئ all match each other | ✨ ه and ة match each other",
+            "usage_note": "When correct, the tile shows the exact letter from the answer. All equivalent forms are marked on the keyboard!"
         }
     }
 }

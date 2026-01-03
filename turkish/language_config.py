@@ -2,7 +2,7 @@
 Turkish Language Configuration for kelimle.
 Contains Turkish-specific word validation, normalization, and keyboard layout.
 """
-from typing import List
+from typing import List, Dict
 import sys
 import os
 
@@ -86,6 +86,13 @@ class TurkishWordValidator(BaseWordValidator):
     LANGUAGE_NAME = "Turkish"
     APP_NAME = "kelimle"
     
+    # Define letter equivalence groups
+    C_VARIATIONS = {'c', 'ç'}
+    G_VARIATIONS = {'g', 'ğ'}
+    O_VARIATIONS = {'o', 'ö'}
+    S_VARIATIONS = {'s', 'ş'}
+    U_VARIATIONS = {'u', 'ü'}
+    
     # Turkish-specific character mappings for case-insensitive comparison
     # Turkish has special I/İ and ı/i rules
     LOWER_MAP = {
@@ -111,6 +118,107 @@ class TurkishWordValidator(BaseWordValidator):
         text = text.lower()
         
         return text.strip()
+    
+    def letters_match(self, guess_letter: str, target_letter: str) -> bool:
+        """
+        Check if two letters match, considering Turkish equivalences.
+        Returns True if they're the same or in the same equivalence group.
+        """
+        # Exact match
+        if guess_letter == target_letter:
+            return True
+        
+        # Check c/ç variations
+        if guess_letter in self.C_VARIATIONS and target_letter in self.C_VARIATIONS:
+            return True
+        
+        # Check g/ğ variations
+        if guess_letter in self.G_VARIATIONS and target_letter in self.G_VARIATIONS:
+            return True
+        
+        # Check o/ö variations
+        if guess_letter in self.O_VARIATIONS and target_letter in self.O_VARIATIONS:
+            return True
+        
+        # Check s/ş variations
+        if guess_letter in self.S_VARIATIONS and target_letter in self.S_VARIATIONS:
+            return True
+        
+        # Check u/ü variations
+        if guess_letter in self.U_VARIATIONS and target_letter in self.U_VARIATIONS:
+            return True
+        
+        return False
+    
+    def validate_guess(self, guess: str, target: str) -> List[Dict]:
+        """
+        Validate a guess against the target word with Turkish-specific rules.
+        
+        - Treats c/ç as equivalent
+        - Treats g/ğ as equivalent
+        - Treats o/ö as equivalent
+        - Treats s/ş as equivalent
+        - Treats u/ü as equivalent
+        - When correct, displays the actual letter from the target
+        - Marks keyboard with the canonical form of equivalent letters
+        """
+        from typing import Dict, List
+        
+        # Normalize both
+        guess_clean = self.normalize_text(guess)
+        target_clean = self.normalize_text(target)
+        
+        guess_letters = list(guess_clean)
+        target_letters = list(target_clean)
+        
+        result = []
+        target_letter_counts = {}
+        
+        # Count letters in target (using actual target letters)
+        for letter in target_letters:
+            target_letter_counts[letter] = target_letter_counts.get(letter, 0) + 1
+        
+        # First pass: mark correct positions (green)
+        temp_result = [None] * len(guess_letters)
+        for i, guess_letter in enumerate(guess_letters):
+            if i < len(target_letters):
+                target_letter = target_letters[i]
+                if self.letters_match(guess_letter, target_letter):
+                    # Use the actual target letter for display
+                    temp_result[i] = {
+                        'letter': target_letter,
+                        'status': 'correct',
+                        'keyboard_letter': target_letter  # Mark keyboard with target letter
+                    }
+                    target_letter_counts[target_letter] -= 1
+        
+        # Second pass: mark present but wrong position (yellow) or absent (gray)
+        for i, guess_letter in enumerate(guess_letters):
+            if temp_result[i] is not None:
+                continue
+            
+            # Check if this guessed letter matches any remaining target letter
+            found = False
+            for target_letter, count in target_letter_counts.items():
+                if count > 0 and self.letters_match(guess_letter, target_letter):
+                    # Use the actual target letter for display
+                    temp_result[i] = {
+                        'letter': target_letter,
+                        'status': 'present',
+                        'keyboard_letter': target_letter  # Mark keyboard with target letter
+                    }
+                    target_letter_counts[target_letter] -= 1
+                    found = True
+                    break
+            
+            if not found:
+                temp_result[i] = {
+                    'letter': guess_letter,
+                    'status': 'absent',
+                    'keyboard_letter': guess_letter
+                }
+        
+        return temp_result
     
     def count_letters(self, text: str) -> int:
         """
@@ -144,9 +252,9 @@ LANGUAGE_CONFIG = {
         ],
         "letter_rules": {
             "title": "Turkish Letter Rules",
-            "alif_note": "Special characters: ç, ğ, ı, ö, ş, ü are separate letters",
-            "distinct_note": "İ and I are distinct letters (dotted and undotted)",
-            "usage_note": "Use the correct Turkish characters as shown in the answer"
+            "alif_note": "✨ Letter equivalences: c/ç, g/ğ, o/ö, s/ş, u/ü all match their pairs",
+            "distinct_note": "İ and ı are distinct letters (dotted and undotted)",
+            "usage_note": "When correct, the tile shows the exact letter from the answer. All equivalent forms are marked on the keyboard!"
         }
     }
 }
