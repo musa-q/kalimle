@@ -24,7 +24,7 @@ _db_instance: Optional[BaseDatabase] = None
 def get_database() -> BaseDatabase:
     """Get or create database instance."""
     global _db_instance
-    
+
     if _db_instance is None:
         settings = get_settings()
         _db_instance = BaseDatabase(
@@ -33,7 +33,7 @@ def get_database() -> BaseDatabase:
             supabase_service_key=settings.SUPABASE_SERVICE_KEY,
             admin_secret=settings.ADMIN_SECRET
         )
-    
+
     return _db_instance
 
 
@@ -79,19 +79,19 @@ async def get_all_puzzles() -> List[Dict]:
 async def get_active_puzzles() -> List[Dict]:
     """Fetch active puzzles."""
     global _cached_puzzles, _cache_timestamp
-    
+
     now = datetime.now(timezone.utc)
-    
+
     # Check if cache is still valid
     if _cache_timestamp and (now - _cache_timestamp).total_seconds() < CACHE_TTL_SECONDS:
         if _cached_puzzles:
             return _cached_puzzles
-    
+
     puzzles = await get_database().get_active_puzzles()
     if puzzles:
         _cached_puzzles = puzzles
         _cache_timestamp = now
-    
+
     return puzzles
 
 
@@ -127,36 +127,38 @@ async def schedule_puzzle(puzzle_id: str, date_str: str):
 def _fetch_puzzles_sync() -> List[Dict]:
     """Synchronous wrapper to fetch puzzles from database."""
     global _cached_puzzles, _cache_timestamp
-    
+
     now = datetime.now(timezone.utc)
-    
+
     # Check if cache is still valid
     if _cache_timestamp and (now - _cache_timestamp).total_seconds() < CACHE_TTL_SECONDS:
         if _cached_puzzles:
             return _cached_puzzles
-    
+
     # Try to fetch from database
     try:
+        import nest_asyncio
+        nest_asyncio.apply()
+
         # Check if we're already in an event loop
         try:
             loop = asyncio.get_running_loop()
-            # We're in an async context - just use cache or fallback
-            return _cached_puzzles if _cached_puzzles else []
         except RuntimeError:
-            # No running loop - we can create one
+            # No running loop - create one
             loop = asyncio.new_event_loop()
-            try:
-                asyncio.set_event_loop(loop)
-                puzzles = loop.run_until_complete(get_active_puzzles())
-                if puzzles:
-                    _cached_puzzles = puzzles
-                    _cache_timestamp = now
-                    return puzzles
-            finally:
-                loop.close()
+            asyncio.set_event_loop(loop)
+
+        # Fetch puzzles (works in both sync and async contexts)
+        puzzles = loop.run_until_complete(get_active_puzzles())
+        if puzzles:
+            _cached_puzzles = puzzles
+            _cache_timestamp = now
+            return puzzles
     except Exception as e:
         print(f"Error fetching puzzles from database: {e}")
-    
+        import traceback
+        traceback.print_exc()
+
     return []
 
 
@@ -168,7 +170,7 @@ def get_todays_puzzle() -> Dict:
     """
     today = get_today_gmt()
     date_str = today.isoformat()
-    
+
     # Try to get puzzles from database
     try:
         puzzles = _fetch_puzzles_sync()
@@ -177,13 +179,13 @@ def get_todays_puzzle() -> Dict:
             for puzzle in puzzles:
                 if puzzle.get("scheduled_date") == date_str:
                     return puzzle
-            
+
             # Use hash-based selection
             index = get_puzzle_index_for_date(len(puzzles), today)
             return puzzles[index]
     except Exception as e:
         print(f"Error in get_todays_puzzle: {e}")
-    
+
     # Fallback to local puzzles
     index = get_puzzle_index_for_date(len(FALLBACK_PUZZLES), today)
     return FALLBACK_PUZZLES[index]

@@ -177,7 +177,8 @@ class ArabicWordValidator(BaseWordValidator):
                     temp_result[i] = {
                         'letter': target_letter,
                         'status': 'correct',
-                        'keyboard_letter': target_letter  # Mark keyboard with target letter
+                        'keyboard_letter': target_letter,  # Mark keyboard with target letter
+                        'guessed_letter': guess_letter  # Track what was actually typed
                     }
                     target_letter_counts[target_letter] -= 1
         
@@ -194,7 +195,8 @@ class ArabicWordValidator(BaseWordValidator):
                     temp_result[i] = {
                         'letter': target_letter,
                         'status': 'present',
-                        'keyboard_letter': target_letter  # Mark keyboard with target letter
+                        'keyboard_letter': target_letter,  # Mark keyboard with target letter
+                        'guessed_letter': guess_letter  # Track what was actually typed
                     }
                     target_letter_counts[target_letter] -= 1
                     found = True
@@ -204,10 +206,26 @@ class ArabicWordValidator(BaseWordValidator):
                 temp_result[i] = {
                     'letter': guess_letter,
                     'status': 'absent',
-                    'keyboard_letter': guess_letter
+                    'keyboard_letter': guess_letter,
+                    'guessed_letter': guess_letter
                 }
         
         return temp_result
+    
+    def check_win(self, guess: str, target: str) -> bool:
+        """Check if the guess matches the target word using equivalence rules."""
+        guess_clean = self.remove_diacritics(guess)
+        target_clean = self.remove_diacritics(target)
+        
+        if len(guess_clean) != len(target_clean):
+            return False
+        
+        # Check each letter using equivalence rules
+        for i in range(len(guess_clean)):
+            if not self.letters_match(guess_clean[i], target_clean[i]):
+                return False
+        
+        return True
     
     def count_letters(self, text: str) -> int:
         """

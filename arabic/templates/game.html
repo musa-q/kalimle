@@ -25,7 +25,7 @@
         <main>
             <!-- Daily Sentence -->
             <div class="sentence-card">
-                <p class="sentence">{{ sentence }}</p>
+                <p class="sentence" dir="ltr">{{ sentence }}</p>
                 <p class="hint">💡 The word has <strong>{{ target_length }}</strong> letters</p>
             </div>
 
@@ -42,7 +42,7 @@
                 <div class="guess-row {% if i < guesses|length %}submitted{% else %}empty{% endif %}">
                     {% if i < feedback|length %}
                         {% for tile in feedback[i] %}
-                        <div class="tile {{ tile.status }}">{{ tile.letter }}</div>
+                        <div class="tile {{ tile.status }}" data-keyboard-letter="{{ tile.keyboard_letter }}" data-guessed-letter="{{ tile.guessed_letter }}">{{ tile.letter }}</div>
                         {% endfor %}
                     {% else %}
                         {% for j in range(target_length) %}
@@ -57,7 +57,7 @@
             {% if game_over %}
             <div class="game-result {% if won %}win{% else %}lose{% endif %}">
                 {% if won %}
-                <h2>🎉 Congratulations!</h2>
+                <h2>🎉 !مبروك</h2>
                 <p>You guessed it in {{ guesses|length }} {% if guesses|length == 1 %}try{% else %}tries{% endif %}!</p>
                 {% else %}
                 <h2>😔 Game Over</h2>

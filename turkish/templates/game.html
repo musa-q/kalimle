@@ -42,7 +42,7 @@
                 <div class="guess-row {% if i < guesses|length %}submitted{% else %}empty{% endif %}">
                     {% if i < feedback|length %}
                         {% for tile in feedback[i] %}
-                        <div class="tile {{ tile.status }}">{{ tile.letter }}</div>
+                        <div class="tile {{ tile.status }}" data-keyboard-letter="{{ tile.keyboard_letter }}" data-guessed-letter="{{ tile.guessed_letter }}">{{ tile.letter }}</div>
                         {% endfor %}
                     {% else %}
                         {% for j in range(target_length) %}
@@ -58,24 +58,24 @@
             <div class="game-result {% if won %}win{% else %}lose{% endif %}">
                 {% if won %}
                 <h2>🎉 Tebrikler!</h2>
-                <p>{{ guesses|length }} denemede bildiniz!</p>
+                <p>You guessed it in {{ guesses|length }} {% if guesses|length == 1 %}try{% else %}tries{% endif %}!</p>
                 {% else %}
-                <h2>😔 Oyun Bitti</h2>
-                <p>Yarın tekrar deneyin!</p>
+                <h2>😔 Game Over</h2>
+                <p>Better luck tomorrow!</p>
                 {% endif %}
 
                 <div class="answer-reveal">
-                    <h3>Cevap</h3>
+                    <h3>The Answer</h3>
                     <div class="answer-word">{{ target }}</div>
                     <p class="pronunciation">{{ pronunciation }} - "{{ meaning }}"</p>
                     <p class="example">{{ example }}</p>
                 </div>
 
                 <div class="share-section">
-                    <button id="share-btn" class="btn btn-share" onclick="WordleShared.shareResult('{{ app_name }}')" aria-label="Sonucu paylaş">
-                        📤 Sonucu Paylaş
+                    <button id="share-btn" class="btn btn-share" onclick="WordleShared.shareResult('{{ app_name }}')" aria-label="Share your result">
+                        📤 Share Result
                     </button>
-                    <p class="next-puzzle-info">⏰ Sonraki bulmaca: <span id="countdown"></span></p>
+                    <p class="next-puzzle-info">⏰ Next puzzle: <span id="countdown"></span></p>
                 </div>
             </div>
             {% else %}

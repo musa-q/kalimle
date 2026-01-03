@@ -174,40 +174,20 @@ function updateKeyboardStatuses(letterStatuses) {
     const keys = document.querySelectorAll('.key[data-key]');
     keys.forEach(key => {
         const letter = key.dataset.key;
+        const status = letterStatuses[letter];
         
-        // Check if this letter or any of its equivalents has a status
-        let effectiveStatus = letterStatuses[letter];
-        
-        // Check for letter equivalences (for languages like Arabic)
-        if (window.LETTER_EQUIVALENCES && window.LETTER_EQUIVALENCES[letter]) {
-            const equivalentLetters = window.LETTER_EQUIVALENCES[letter];
-            for (const equiv of equivalentLetters) {
-                if (letterStatuses[equiv]) {
-                    // Priority: correct > present > absent
-                    if (letterStatuses[equiv] === 'correct') {
-                        effectiveStatus = 'correct';
-                        break;
-                    } else if (letterStatuses[equiv] === 'present' && effectiveStatus !== 'correct') {
-                        effectiveStatus = 'present';
-                    } else if (letterStatuses[equiv] === 'absent' && !effectiveStatus) {
-                        effectiveStatus = 'absent';
-                    }
-                }
-            }
-        }
-        
-        if (effectiveStatus) {
+        if (status) {
             // Priority: correct > present > absent
             const currentStatus = key.classList.contains('correct') ? 'correct' :
                                   key.classList.contains('present') ? 'present' :
                                   key.classList.contains('absent') ? 'absent' : null;
             
             if (currentStatus !== 'correct') {
-                if (effectiveStatus === 'correct' || 
-                    (effectiveStatus === 'present' && currentStatus !== 'present') ||
-                    (effectiveStatus === 'absent' && !currentStatus)) {
+                if (status === 'correct' || 
+                    (status === 'present' && currentStatus !== 'present') ||
+                    (status === 'absent' && !currentStatus)) {
                     key.classList.remove('correct', 'present', 'absent');
-                    key.classList.add(effectiveStatus);
+                    key.classList.add(status);
                 }
             }
         }
@@ -257,8 +237,12 @@ function initKeyboardColorsFromGuesses() {
     guessRows.forEach(row => {
         const tiles = row.querySelectorAll('.tile');
         tiles.forEach(tile => {
-            const letter = tile.textContent.trim();
-            if (!letter) return;
+            // Use the keyboard_letter from the data attribute (this is the target letter)
+            const keyboardLetter = tile.dataset.keyboardLetter || tile.textContent.trim();
+            // The guessed_letter is what the user actually typed
+            const guessedLetter = tile.dataset.guessedLetter || keyboardLetter;
+            
+            if (!keyboardLetter) return;
             
             const status = tile.classList.contains('correct') ? 'correct' :
                           tile.classList.contains('present') ? 'present' :
@@ -266,11 +250,20 @@ function initKeyboardColorsFromGuesses() {
             
             if (status) {
                 // Only upgrade status (correct > present > absent)
-                const currentStatus = letterStatuses[letter];
+                const currentStatus = letterStatuses[keyboardLetter];
                 if (!currentStatus || 
                     status === 'correct' || 
                     (status === 'present' && currentStatus === 'absent')) {
-                    letterStatuses[letter] = status;
+                    letterStatuses[keyboardLetter] = status;
+                }
+                
+                // If the guessed letter is different from the keyboard letter,
+                // mark the guessed letter as absent (only if not already marked with a better status)
+                if (guessedLetter && guessedLetter !== keyboardLetter) {
+                    const guessedCurrentStatus = letterStatuses[guessedLetter];
+                    if (!guessedCurrentStatus) {
+                        letterStatuses[guessedLetter] = 'absent';
+                    }
                 }
             }
         });

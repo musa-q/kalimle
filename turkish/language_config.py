@@ -89,6 +89,7 @@ class TurkishWordValidator(BaseWordValidator):
     # Define letter equivalence groups
     C_VARIATIONS = {'c', 'ç'}
     G_VARIATIONS = {'g', 'ğ'}
+    I_VARIATIONS = {'i', 'ı'}
     O_VARIATIONS = {'o', 'ö'}
     S_VARIATIONS = {'s', 'ş'}
     U_VARIATIONS = {'u', 'ü'}
@@ -134,6 +135,10 @@ class TurkishWordValidator(BaseWordValidator):
         
         # Check g/ğ variations
         if guess_letter in self.G_VARIATIONS and target_letter in self.G_VARIATIONS:
+            return True
+        
+        # Check i/ı variations
+        if guess_letter in self.I_VARIATIONS and target_letter in self.I_VARIATIONS:
             return True
         
         # Check o/ö variations
@@ -188,7 +193,8 @@ class TurkishWordValidator(BaseWordValidator):
                     temp_result[i] = {
                         'letter': target_letter,
                         'status': 'correct',
-                        'keyboard_letter': target_letter  # Mark keyboard with target letter
+                        'keyboard_letter': target_letter,  # Mark keyboard with target letter
+                        'guessed_letter': guess_letter  # Track what was actually typed
                     }
                     target_letter_counts[target_letter] -= 1
         
@@ -205,7 +211,8 @@ class TurkishWordValidator(BaseWordValidator):
                     temp_result[i] = {
                         'letter': target_letter,
                         'status': 'present',
-                        'keyboard_letter': target_letter  # Mark keyboard with target letter
+                        'keyboard_letter': target_letter,  # Mark keyboard with target letter
+                        'guessed_letter': guess_letter  # Track what was actually typed
                     }
                     target_letter_counts[target_letter] -= 1
                     found = True
@@ -215,10 +222,26 @@ class TurkishWordValidator(BaseWordValidator):
                 temp_result[i] = {
                     'letter': guess_letter,
                     'status': 'absent',
-                    'keyboard_letter': guess_letter
+                    'keyboard_letter': guess_letter,
+                    'guessed_letter': guess_letter
                 }
         
         return temp_result
+    
+    def check_win(self, guess: str, target: str) -> bool:
+        """Check if the guess matches the target word using equivalence rules."""
+        guess_clean = self.normalize_text(guess)
+        target_clean = self.normalize_text(target)
+        
+        if len(guess_clean) != len(target_clean):
+            return False
+        
+        # Check each letter using equivalence rules
+        for i in range(len(guess_clean)):
+            if not self.letters_match(guess_clean[i], target_clean[i]):
+                return False
+        
+        return True
     
     def count_letters(self, text: str) -> int:
         """
@@ -252,8 +275,8 @@ LANGUAGE_CONFIG = {
         ],
         "letter_rules": {
             "title": "Turkish Letter Rules",
-            "alif_note": "✨ Letter equivalences: c/ç, g/ğ, o/ö, s/ş, u/ü all match their pairs",
-            "distinct_note": "İ and ı are distinct letters (dotted and undotted)",
+            "alif_note": "✨ Letter equivalences: c/ç, g/ğ, i/ı, o/ö, s/ş, u/ü all match their pairs",
+            "distinct_note": "When correct, the tile shows the exact letter from the answer",
             "usage_note": "When correct, the tile shows the exact letter from the answer. All equivalent forms are marked on the keyboard!"
         }
     }
