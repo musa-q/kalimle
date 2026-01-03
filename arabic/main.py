@@ -1,41 +1,39 @@
 """
-kalimle - FastAPI Application
+kalimle - Arabic Wordle FastAPI Application
 Server-side rendered game with minimal JavaScript.
 """
-from fastapi import FastAPI, Request, Form, Cookie, Depends, HTTPException
+import sys
+import os
+
+# Add parent directory to path for shared imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from fastapi import FastAPI, Request, Form, Cookie, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from typing import Optional
 import json
-import os
-import hashlib
 import secrets
 
-from game.logic import (
-    get_todays_puzzle,
-    validate_guess,
-    validate_guess_length,
-    check_win,
-    get_game_state_key,
-    get_today_gmt,
-    MAX_GUESSES,
-    normalize_arabic,
-    count_arabic_letters
-)
-from config import get_settings
-import database
+from shared.game.logic import MAX_GUESSES, get_game_state_key, get_today_gmt
+from arabic.language_config import validator, LANGUAGE_CONFIG, KEYBOARD_LAYOUT
+from arabic.config import get_settings
+import arabic.database as database
+
 
 app = FastAPI(title="kalimle", description="Daily Arabic Word Puzzle Game")
 
 # Setup templates and static files
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PARENT_DIR = os.path.dirname(BASE_DIR)
+
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+app.mount("/static/shared", StaticFiles(directory=os.path.join(PARENT_DIR, "shared", "static")), name="shared_static")
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
 
-# Admin session management - stores access tokens
-# In production with multiple instances, use Redis or database
+# Admin session management
 ADMIN_SESSIONS = {}
 
 
@@ -43,24 +41,18 @@ async def verify_admin_session(
     admin_session: Optional[str] = Cookie(default=None),
     admin_token: Optional[str] = Cookie(default=None)
 ) -> Optional[dict]:
-    """
-    Check if the admin session is valid.
-    Returns user data if valid, None otherwise.
-    """
+    """Check if the admin session is valid."""
     if not admin_session:
         return None
     
-    # Check local session cache first
     if admin_session not in ADMIN_SESSIONS:
         return None
     
     session_data = ADMIN_SESSIONS[admin_session]
     
-    # If using Supabase auth, verify the token is still valid
     if admin_token and not session_data.get("fallback"):
         user = await database.verify_session(admin_token)
         if not user:
-            # Try to refresh the session
             refresh_token = session_data.get("refresh_token")
             if refresh_token:
                 new_session = await database.refresh_session(refresh_token)
@@ -68,7 +60,6 @@ async def verify_admin_session(
                     session_data["access_token"] = new_session["access_token"]
                     session_data["refresh_token"] = new_session["refresh_token"]
                     return session_data
-            # Session expired, remove it
             del ADMIN_SESSIONS[admin_session]
             return None
     
@@ -82,13 +73,11 @@ def get_game_state(game_state_cookie: Optional[str]) -> dict:
     if game_state_cookie:
         try:
             state = json.loads(game_state_cookie)
-            # Check if this is today's game state
             if state.get("date") == today_key:
                 return state
         except (json.JSONDecodeError, TypeError):
             pass
     
-    # Return fresh state for new day or invalid cookie
     return {
         "date": today_key,
         "guesses": [],
@@ -98,14 +87,21 @@ def get_game_state(game_state_cookie: Optional[str]) -> dict:
     }
 
 
+# ============================================================================
+# GAME ROUTES
+# ============================================================================
+
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request, game_state: Optional[str] = Cookie(default=None)):
     """Main game page."""
-    puzzle = get_todays_puzzle()
+    puzzle = database.get_todays_puzzle()
     state = get_game_state(game_state)
     
     return templates.TemplateResponse("game.html", {
         "request": request,
+        "app_name": LANGUAGE_CONFIG["app_name"],
+        "lang_code": LANGUAGE_CONFIG["code"],
+        "text_direction": LANGUAGE_CONFIG["text_direction"],
         "sentence": puzzle["sentence"],
         "guesses": state["guesses"],
         "feedback": state["feedback"],
@@ -117,7 +113,9 @@ async def home(request: Request, game_state: Optional[str] = Cookie(default=None
         "pronunciation": puzzle["pronunciation"] if state["game_over"] else None,
         "meaning": puzzle["meaning"] if state["game_over"] else None,
         "example": puzzle["example"] if state["game_over"] else None,
-        "target_length": count_arabic_letters(puzzle["target"])
+        "target_length": validator.count_letters(puzzle["target"]),
+        "keyboard_layout": KEYBOARD_LAYOUT,
+        "help_text": LANGUAGE_CONFIG["help_text"]
     })
 
 
@@ -128,22 +126,23 @@ async def submit_guess(
     game_state: Optional[str] = Cookie(default=None)
 ):
     """Process a guess submission."""
-    puzzle = get_todays_puzzle()
+    puzzle = database.get_todays_puzzle()
     state = get_game_state(game_state)
     
-    # Don't process if game is already over
     if state["game_over"]:
         response = RedirectResponse(url="/", status_code=303)
         return response
     
-    # Clean and validate the guess
     guess = guess.strip()
     
     # Validate guess length
-    is_valid, error_msg = validate_guess_length(guess, puzzle["target"])
+    is_valid, error_msg = validator.validate_guess_length(guess, puzzle["target"])
     if not is_valid:
         return templates.TemplateResponse("game.html", {
             "request": request,
+            "app_name": LANGUAGE_CONFIG["app_name"],
+            "lang_code": LANGUAGE_CONFIG["code"],
+            "text_direction": LANGUAGE_CONFIG["text_direction"],
             "sentence": puzzle["sentence"],
             "guesses": state["guesses"],
             "feedback": state["feedback"],
@@ -155,27 +154,31 @@ async def submit_guess(
             "pronunciation": None,
             "meaning": None,
             "example": None,
-            "target_length": count_arabic_letters(puzzle["target"]),
+            "target_length": validator.count_letters(puzzle["target"]),
+            "keyboard_layout": KEYBOARD_LAYOUT,
+            "help_text": LANGUAGE_CONFIG["help_text"],
             "error": error_msg
         })
     
-    # Get feedback for this guess
-    feedback = validate_guess(guess, puzzle["target"])
+    # Get feedback
+    feedback = validator.validate_guess(guess, puzzle["target"])
     
     # Update state
     state["guesses"].append(guess)
     state["feedback"].append(feedback)
     
-    # Check win/lose conditions
-    if check_win(guess, puzzle["target"]):
+    # Check win/lose
+    if validator.check_win(guess, puzzle["target"]):
         state["won"] = True
         state["game_over"] = True
     elif len(state["guesses"]) >= MAX_GUESSES:
         state["game_over"] = True
     
-    # Create response with updated cookie
     response = templates.TemplateResponse("game.html", {
         "request": request,
+        "app_name": LANGUAGE_CONFIG["app_name"],
+        "lang_code": LANGUAGE_CONFIG["code"],
+        "text_direction": LANGUAGE_CONFIG["text_direction"],
         "sentence": puzzle["sentence"],
         "guesses": state["guesses"],
         "feedback": state["feedback"],
@@ -187,14 +190,15 @@ async def submit_guess(
         "pronunciation": puzzle["pronunciation"] if state["game_over"] else None,
         "meaning": puzzle["meaning"] if state["game_over"] else None,
         "example": puzzle["example"] if state["game_over"] else None,
-        "target_length": count_arabic_letters(puzzle["target"])
+        "target_length": validator.count_letters(puzzle["target"]),
+        "keyboard_layout": KEYBOARD_LAYOUT,
+        "help_text": LANGUAGE_CONFIG["help_text"]
     })
     
-    # Save state to cookie
     response.set_cookie(
         key="game_state",
         value=json.dumps(state),
-        max_age=86400,  # 24 hours
+        max_age=86400,
         httponly=True,
         samesite="lax"
     )
@@ -209,36 +213,29 @@ async def api_submit_guess(
     game_state: Optional[str] = Cookie(default=None)
 ):
     """JSON API endpoint for guess submission."""
-    puzzle = get_todays_puzzle()
+    puzzle = database.get_todays_puzzle()
     state = get_game_state(game_state)
     
-    # Don't process if game is already over
     if state["game_over"]:
         return JSONResponse({"error": "Game already over"}, status_code=400)
     
-    # Clean and validate the guess
     guess = guess.strip()
     
-    # Validate guess length
-    is_valid, error_msg = validate_guess_length(guess, puzzle["target"])
+    is_valid, error_msg = validator.validate_guess_length(guess, puzzle["target"])
     if not is_valid:
         return JSONResponse({"error": error_msg}, status_code=400)
     
-    # Get feedback for this guess
-    feedback = validate_guess(guess, puzzle["target"])
+    feedback = validator.validate_guess(guess, puzzle["target"])
     
-    # Update state
     state["guesses"].append(guess)
     state["feedback"].append(feedback)
     
-    # Check win/lose conditions
-    if check_win(guess, puzzle["target"]):
+    if validator.check_win(guess, puzzle["target"]):
         state["won"] = True
         state["game_over"] = True
     elif len(state["guesses"]) >= MAX_GUESSES:
         state["game_over"] = True
     
-    # Prepare response data
     response_data = {
         "success": True,
         "guess": guess,
@@ -252,12 +249,11 @@ async def api_submit_guess(
         "example": puzzle["example"] if state["game_over"] else None
     }
     
-    # Create response with updated cookie
     response = JSONResponse(response_data)
     response.set_cookie(
         key="game_state",
         value=json.dumps(state),
-        max_age=86400,  # 24 hours
+        max_age=86400,
         httponly=True,
         samesite="lax"
     )
@@ -267,27 +263,15 @@ async def api_submit_guess(
 
 @app.post("/reset", response_class=HTMLResponse)
 async def reset_game():
-    """Reset the game (clears cookie, but same puzzle remains for the day)."""
+    """Reset the game."""
     response = RedirectResponse(url="/", status_code=303)
     response.delete_cookie("game_state")
     return response
 
 
-@app.get("/api/puzzle", response_class=HTMLResponse)
-async def get_puzzle_info():
-    """API endpoint to get current puzzle info (for debugging)."""
-    puzzle = get_todays_puzzle()
-    return f"""
-    <h2>Today's Puzzle</h2>
-    <p><strong>Sentence:</strong> {puzzle["sentence"]}</p>
-    <p><strong>Target:</strong> {puzzle["target"]}</p>
-    <p><strong>Meaning:</strong> {puzzle["meaning"]}</p>
-    """
-
-
-# =============================================================================
+# ============================================================================
 # ADMIN ROUTES
-# =============================================================================
+# ============================================================================
 
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_panel(
@@ -304,11 +288,12 @@ async def admin_panel(
     
     settings = get_settings()
     puzzles = await database.get_all_puzzles()
-    today_puzzle = get_todays_puzzle()
+    today_puzzle = database.get_todays_puzzle()
     today_date = get_today_gmt().isoformat()
     
     return templates.TemplateResponse("admin.html", {
         "request": request,
+        "app_name": LANGUAGE_CONFIG["app_name"],
         "puzzles": puzzles,
         "today_puzzle": today_puzzle,
         "today_date": today_date,
@@ -321,13 +306,12 @@ async def admin_panel(
 
 @app.get("/admin/login", response_class=HTMLResponse)
 async def admin_login_page(
-    request: Request, 
+    request: Request,
     error: Optional[str] = None,
     admin_session: Optional[str] = Cookie(default=None),
     admin_token: Optional[str] = Cookie(default=None)
 ):
     """Admin login page."""
-    # Redirect to admin if already logged in
     user = await verify_admin_session(admin_session, admin_token)
     if user:
         return RedirectResponse(url="/admin", status_code=303)
@@ -335,6 +319,7 @@ async def admin_login_page(
     settings = get_settings()
     return templates.TemplateResponse("admin_login.html", {
         "request": request,
+        "app_name": LANGUAGE_CONFIG["app_name"],
         "error": error,
         "supabase_configured": settings.supabase_configured
     })
@@ -342,19 +327,17 @@ async def admin_login_page(
 
 @app.post("/admin/login")
 async def admin_login(
-    request: Request, 
+    request: Request,
     email: str = Form(""),
     password: str = Form(...)
 ):
-    """Process admin login with Supabase Auth."""
+    """Process admin login."""
     settings = get_settings()
     
-    # Try Supabase Auth first if configured
     if settings.supabase_configured and email:
         user_data, error = await database.sign_in_with_email(email, password)
         
         if user_data:
-            # Create session token
             session_token = secrets.token_urlsafe(32)
             ADMIN_SESSIONS[session_token] = user_data
             
@@ -362,11 +345,10 @@ async def admin_login(
             response.set_cookie(
                 key="admin_session",
                 value=session_token,
-                max_age=86400 * 7,  # 7 days
+                max_age=86400 * 7,
                 httponly=True,
                 samesite="lax"
             )
-            # Also store access token for session verification
             if user_data.get("access_token"):
                 response.set_cookie(
                     key="admin_token",
@@ -379,11 +361,11 @@ async def admin_login(
         
         return templates.TemplateResponse("admin_login.html", {
             "request": request,
+            "app_name": LANGUAGE_CONFIG["app_name"],
             "error": error or "Invalid credentials",
             "supabase_configured": True
         })
     
-    # Fallback to simple password check if Supabase not configured
     if secrets.compare_digest(password, settings.ADMIN_SECRET):
         session_token = secrets.token_urlsafe(32)
         ADMIN_SESSIONS[session_token] = {"email": "admin", "fallback": True}
@@ -392,7 +374,7 @@ async def admin_login(
         response.set_cookie(
             key="admin_session",
             value=session_token,
-            max_age=86400,  # 24 hours
+            max_age=86400,
             httponly=True,
             samesite="lax"
         )
@@ -400,6 +382,7 @@ async def admin_login(
     
     return templates.TemplateResponse("admin_login.html", {
         "request": request,
+        "app_name": LANGUAGE_CONFIG["app_name"],
         "error": "Invalid password",
         "supabase_configured": False
     })
@@ -412,7 +395,6 @@ async def admin_logout(
 ):
     """Process admin logout."""
     if admin_session and admin_session in ADMIN_SESSIONS:
-        # Sign out from Supabase if applicable
         if admin_token:
             await database.sign_out(admin_token)
         del ADMIN_SESSIONS[admin_session]
@@ -454,7 +436,7 @@ async def add_puzzle(
     if result:
         return RedirectResponse(url="/admin?success=Puzzle added successfully!", status_code=303)
     else:
-        return RedirectResponse(url="/admin?error=Failed to add puzzle. Check Supabase configuration.", status_code=303)
+        return RedirectResponse(url="/admin?error=Failed to add puzzle.", status_code=303)
 
 
 @app.post("/admin/puzzle/bulk-add")
@@ -474,7 +456,6 @@ async def bulk_add_puzzles(
         if not isinstance(puzzles, list):
             raise ValueError("Expected a JSON array")
         
-        # Validate each puzzle has required fields
         required_fields = ["sentence", "target", "pronunciation", "meaning"]
         for i, puzzle in enumerate(puzzles):
             missing = [f for f in required_fields if f not in puzzle]
@@ -485,22 +466,19 @@ async def bulk_add_puzzles(
         
         if results:
             return RedirectResponse(
-                url=f"/admin?success=Successfully added {len(results)} puzzles!", 
+                url=f"/admin?success=Successfully added {len(results)} puzzles!",
                 status_code=303
             )
         else:
             return RedirectResponse(
-                url="/admin?error=Failed to add puzzles. Check Supabase configuration.", 
+                url="/admin?error=Failed to add puzzles.",
                 status_code=303
             )
     except json.JSONDecodeError:
         return RedirectResponse(url="/admin?error=Invalid JSON format", status_code=303)
     except ValueError as e:
-        error_msg = str(e).replace("'", "").replace('"', '')  # Clean quotes for URL
+        error_msg = str(e).replace("'", "").replace('"', '')
         return RedirectResponse(url=f"/admin?error={error_msg}", status_code=303)
-    except Exception as e:
-        error_msg = str(e).replace("'", "").replace('"', '')  # Clean quotes for URL
-        return RedirectResponse(url=f"/admin?error=Unexpected error: {error_msg}", status_code=303)
 
 
 @app.post("/admin/puzzle/toggle/{puzzle_id}")
@@ -514,7 +492,6 @@ async def toggle_puzzle(
     if not user:
         return RedirectResponse(url="/admin/login", status_code=303)
     
-    # Get current puzzle state
     puzzles = await database.get_all_puzzles()
     puzzle = next((p for p in puzzles if p["id"] == puzzle_id), None)
     
@@ -527,7 +504,7 @@ async def toggle_puzzle(
 
 
 @app.post("/admin/puzzle/delete/{puzzle_id}")
-async def delete_puzzle(
+async def delete_puzzle_route(
     puzzle_id: str,
     admin_session: Optional[str] = Cookie(default=None),
     admin_token: Optional[str] = Cookie(default=None)
@@ -545,7 +522,7 @@ async def delete_puzzle(
 
 
 @app.post("/admin/puzzle/schedule")
-async def schedule_puzzle(
+async def schedule_puzzle_route(
     puzzle_id: str = Form(...),
     date: str = Form(...),
     admin_session: Optional[str] = Cookie(default=None),

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="{{ lang_code }}" dir="{{ text_direction }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="{{ theme_color | default('#121213') }}">
+    <meta name="description" content="{{ meta_description }}">
+    <title>{{ app_name }} - {{ page_title }}</title>
+    
+    <!-- Shared CSS -->
+    <link rel="stylesheet" href="/static/shared/css/base.css">
+    <!-- Language-specific CSS -->
+    <link rel="stylesheet" href="/static/css/style.css">
+    
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+    <header class="navbar">
+        <div class="nav-left">
+            {% block nav_left %}{% endblock %}
+        </div>
+        <div class="nav-center">
+            <h1>{{ app_name }}</h1>
+        </div>
+        <div class="nav-right">
+            {% block nav_right %}
+            <button id="help-btn" class="icon-btn" aria-label="Help">?</button>
+            {% endblock %}
+        </div>
+    </header>
+
+    <div class="container">
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+
+        <footer>
+            <p>🌍 {{ footer_text | default('A new word every day • Same word for everyone worldwide') }}</p>
+        </footer>
+    </div>
+
+    {% block modals %}{% endblock %}
+
+    <!-- Shared JS -->
+    <script src="/static/shared/js/game.js"></script>
+    <!-- Language-specific JS -->
+    {% block scripts %}{% endblock %}
+</body>
+</html>

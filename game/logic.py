@@ -2,12 +2,14 @@
 kalimle - Daily Word Puzzle Game
 A FastAPI application where players guess Arabic words to fill in English sentence blanks.
 """
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import List, Tuple, Dict, Optional
 import hashlib
+import asyncio
 
 # Daily puzzles - Each entry contains:
 # (English sentence with blank, Arabic target word, pronunciation, example sentence in Arabic)
+# These are fallback puzzles used when Supabase is not configured
 DAILY_PUZZLES: List[Dict] = [
     {
         "sentence": "I am reading a ___.",
@@ -223,21 +225,129 @@ DAILY_PUZZLES: List[Dict] = [
 
 MAX_GUESSES = 6
 
+# Cache for database puzzles
+_cached_puzzles: List[Dict] = []
+_cache_timestamp: Optional[datetime] = None
+CACHE_TTL_SECONDS = 300  # 5 minutes
+
+
+def get_today_gmt() -> date:
+    """Get today's date in GMT/UTC timezone."""
+    return datetime.now(timezone.utc).date()
+
 
 def get_daily_puzzle_index() -> int:
     """
-    Get the puzzle index for today based on the current date.
+    Get the puzzle index for today based on the current GMT date.
     Uses a hash to ensure the same puzzle for all players worldwide.
     """
-    today = date.today()
+    today = get_today_gmt()
     # Create a consistent hash from the date
     date_str = today.isoformat()
     hash_value = int(hashlib.md5(date_str.encode()).hexdigest(), 16)
     return hash_value % len(DAILY_PUZZLES)
 
 
+async def _fetch_puzzles_from_db() -> List[Dict]:
+    """Fetch puzzles from database with caching."""
+    global _cached_puzzles, _cache_timestamp
+    
+    now = datetime.now(timezone.utc)
+    
+    # Check if cache is still valid
+    if _cache_timestamp and (now - _cache_timestamp).total_seconds() < CACHE_TTL_SECONDS:
+        if _cached_puzzles:
+            return _cached_puzzles
+    
+    # Try to import database module
+    try:
+        import database
+        puzzles = await database.get_active_puzzles()
+        if puzzles:
+            _cached_puzzles = puzzles
+            _cache_timestamp = now
+            return puzzles
+    except Exception as e:
+        print(f"Error fetching puzzles from database: {e}")
+    
+    return []
+
+
+def _fetch_puzzles_sync() -> List[Dict]:
+    """Synchronous wrapper to fetch puzzles from database."""
+    global _cached_puzzles, _cache_timestamp
+    
+    now = datetime.now(timezone.utc)
+    
+    # Check if cache is still valid
+    if _cache_timestamp and (now - _cache_timestamp).total_seconds() < CACHE_TTL_SECONDS:
+        if _cached_puzzles:
+            return _cached_puzzles
+    
+    # Try to fetch from database
+    try:
+        import database
+        
+        # Check if we're already in an event loop
+        try:
+            loop = asyncio.get_running_loop()
+            # We're in an async context - just use cache or fallback
+            # The async route handlers will populate the cache
+            return _cached_puzzles if _cached_puzzles else []
+        except RuntimeError:
+            # No running loop - we can create one
+            loop = asyncio.new_event_loop()
+            try:
+                asyncio.set_event_loop(loop)
+                puzzles = loop.run_until_complete(database.get_active_puzzles())
+                if puzzles:
+                    _cached_puzzles = puzzles
+                    _cache_timestamp = now
+                    return puzzles
+            finally:
+                loop.close()
+    except Exception as e:
+        print(f"Error fetching puzzles from database: {e}")
+    
+    return []
+
+
+def _get_puzzle_for_date(puzzles: List[Dict], date_obj: date) -> Dict:
+    """Select puzzle for a specific date from a list of puzzles."""
+    date_str = date_obj.isoformat()
+    
+    # First, check if there's a puzzle scheduled for this specific date
+    for puzzle in puzzles:
+        if puzzle.get("scheduled_date") == date_str:
+            return puzzle
+    
+    # Otherwise, use hash-based selection from active puzzles
+    if puzzles:
+        hash_value = int(hashlib.md5(date_str.encode()).hexdigest(), 16)
+        index = hash_value % len(puzzles)
+        return puzzles[index]
+    
+    # Fallback to local puzzles
+    return DAILY_PUZZLES[get_daily_puzzle_index()]
+
+
 def get_todays_puzzle() -> Dict:
-    """Get today's puzzle dictionary."""
+    """
+    Get today's puzzle dictionary.
+    Uses GMT timezone to ensure consistent puzzle for all users.
+    Tries to fetch from database first, falls back to local puzzles.
+    """
+    today = get_today_gmt()
+    
+    # Try to get puzzles from database
+    try:
+        puzzles = _fetch_puzzles_sync()
+        if puzzles:
+            return _get_puzzle_for_date(puzzles, today)
+    except Exception as e:
+        print(f"Error in get_todays_puzzle: {e}")
+    
+    # Fallback to local puzzles
     index = get_daily_puzzle_index()
     return DAILY_PUZZLES[index]
 
@@ -359,5 +469,5 @@ def validate_guess_length(guess: str, target: str) -> Tuple[bool, str]:
 
 
 def get_game_state_key() -> str:
-    """Generate a unique key for today's game state."""
-    return date.today().isoformat()
+    """Generate a unique key for today's game state based on GMT date."""
+    return get_today_gmt().isoformat()

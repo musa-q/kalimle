@@ -1,0 +1,21 @@
+/* Arabic-specific styles for kalimle */
+
+/* Any Arabic-specific overrides go here */
+
+/* RTL adjustments if needed */
+[dir="rtl"] .guess-input {
+    text-align: right;
+}
+
+/* Arabic font sizing adjustments */
+.tile {
+    font-family: 'Noto Sans Arabic', 'Segoe UI', Arial, sans-serif;
+}
+
+.key {
+    font-family: 'Noto Sans Arabic', 'Segoe UI', Arial, sans-serif;
+}
+
+.answer-word {
+    font-family: 'Noto Sans Arabic', 'Segoe UI', Arial, sans-serif;
+}
