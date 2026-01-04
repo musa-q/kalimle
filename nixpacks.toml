@@ -1,0 +1,11 @@
+[phases.setup]
+
+[phases.install]
+cmds = ["pip install -r requirements.txt"]
+
+[phases.build]
+
+[start]
+# This tells Nixpacks to NOT auto-detect the start command
+# Railway will use whatever you set in the UI
+cmd = ""
