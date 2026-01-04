@@ -228,6 +228,34 @@ function initKeyboard() {
 }
 
 /**
+ * Get equivalent letters for a given letter based on language
+ */
+function getEquivalentLetters(letter) {
+    // Turkish equivalence groups
+    const turkishEquivalents = {
+        'c': ['c', 'ç'], 'ç': ['c', 'ç'],
+        'g': ['g', 'ğ'], 'ğ': ['g', 'ğ'],
+        'i': ['i', 'ı'], 'ı': ['i', 'ı'],
+        'o': ['o', 'ö'], 'ö': ['o', 'ö'],
+        's': ['s', 'ş'], 'ş': ['s', 'ş'],
+        'u': ['u', 'ü'], 'ü': ['u', 'ü']
+    };
+    
+    // Arabic equivalence groups
+    const arabicEquivalents = {
+        'ا': ['ا', 'أ', 'إ', 'آ'], 'أ': ['ا', 'أ', 'إ', 'آ'], 'إ': ['ا', 'أ', 'إ', 'آ'], 'آ': ['ا', 'أ', 'إ', 'آ'],
+        'ه': ['ه', 'ة'], 'ة': ['ه', 'ة'],
+        'ء': ['ء', 'ؤ', 'ئ'], 'ؤ': ['ء', 'ؤ', 'ئ'], 'ئ': ['ء', 'ؤ', 'ئ']
+    };
+    
+    // Detect language from HTML lang attribute or page structure
+    const htmlLang = document.documentElement.lang || '';
+    const equivalents = htmlLang === 'ar' ? arabicEquivalents : turkishEquivalents;
+    
+    return equivalents[letter] || [letter];
+}
+
+/**
  * Read existing guess feedback and update keyboard colors
  */
 function initKeyboardColorsFromGuesses() {
@@ -264,6 +292,18 @@ function initKeyboardColorsFromGuesses() {
                     if (!guessedCurrentStatus) {
                         letterStatuses[guessedLetter] = 'absent';
                     }
+                }
+                
+                // If status is absent, mark ALL equivalent letters as absent
+                if (status === 'absent') {
+                    const equivalents = getEquivalentLetters(guessedLetter);
+                    equivalents.forEach(equiv => {
+                        const equivStatus = letterStatuses[equiv];
+                        // Only mark as absent if not already marked with a better status
+                        if (!equivStatus || equivStatus === 'absent') {
+                            letterStatuses[equiv] = 'absent';
+                        }
+                    });
                 }
             }
         });
