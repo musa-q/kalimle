@@ -26,7 +26,6 @@
             <!-- Daily Sentence -->
             <div class="sentence-card">
                 <p class="sentence">{{ sentence }}</p>
-                <p class="hint">💡 The word has <strong>{{ target_length }}</strong> letters</p>
             </div>
 
             <!-- Error Message -->
@@ -114,15 +113,16 @@
                 </div>
                 {% endfor %}
                 <div class="keyboard-row keyboard-row-bottom">
-                    <button type="button" class="key key-wide" data-key="BACKSPACE">⌫</button>
                     <button type="button" class="key key-wide" data-key="ENTER">Enter</button>
+                    <button type="button" class="key key-wide" data-key="BACKSPACE">⌫</button>
                 </div>
             </div>
             {% endif %}
         </main>
 
         <footer>
-            <p>🌍 New word every day • Same word for everyone</p>
+            <p>A new word every day • Same word for everyone worldwide 🌍</p>
+            <p>Developed by <a href="https://akililabs.org" target="_blank" rel="noopener noreferrer" style="color:inherit; text-decoration:none;"><strong>AkiliLabs</strong></a></p>
         </footer>
     </div>
 
