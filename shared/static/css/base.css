@@ -382,11 +382,11 @@ main {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.85);
     z-index: 200;
     align-items: center;
     justify-content: center;
-    padding: var(--spacing-md);
+    padding: 16px;
 }
 
 .modal.show {
@@ -395,20 +395,21 @@ main {
 
 .modal-content {
     background: var(--card-bg);
-    border-radius: 12px;
-    max-width: 500px;
+    border-radius: 16px;
+    max-width: 480px;
     width: 100%;
-    max-height: 90vh;
+    max-height: 85vh;
     overflow-y: auto;
-    border: 1px solid var(--tile-border);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--spacing-md) var(--spacing-lg);
-    border-bottom: 1px solid var(--tile-border);
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .modal-header h2 {
@@ -419,48 +420,63 @@ main {
     background: none;
     border: none;
     color: var(--text-color);
-    font-size: 1.5rem;
+    font-size: 1.75rem;
     cursor: pointer;
-    padding: 4px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.2s;
+    line-height: 1;
+}
+
+.close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .modal-body {
-    padding: var(--spacing-lg);
+    padding: 24px;
 }
 
 .modal-section {
-    margin-top: var(--spacing-lg);
+    margin-top: 20px;
 }
 
 .modal-section h3 {
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: 12px;
+    font-size: 1.1rem;
 }
 
 .modal-section ul {
-    padding-left: var(--spacing-lg);
+    padding-left: 24px;
 }
 
 .modal-section li {
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+
+.modal-description {
+    line-height: 1.6;
+    margin-bottom: 8px;
 }
 
 .example-row {
     display: flex;
     align-items: center;
-    gap: var(--spacing-md);
-    margin-bottom: var(--spacing-md);
+    gap: 12px;
+    margin-bottom: 14px;
 }
 
 .tile-example {
-    width: 40px;
-    height: 40px;
+    width: 42px;
+    height: 42px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.25rem;
+    font-size: 1.3rem;
     font-weight: 700;
     border-radius: 4px;
     flex-shrink: 0;
+    border: 2px solid rgba(255, 255, 255, 0.1);
 }
 
 .tile-example.correct {
@@ -586,6 +602,47 @@ footer {
     .keyboard-row-bottom {
         gap: 7px;
     }
+
+    /* Modal responsive adjustments */
+    .modal {
+        padding: 12px;
+    }
+
+    .modal-content {
+        max-height: 90vh;
+        border-radius: 12px;
+    }
+
+    .modal-header {
+        padding: 16px 20px;
+    }
+
+    .modal-header h2 {
+        font-size: 1.3rem;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .modal-section h3 {
+        font-size: 1rem;
+    }
+
+    .tile-example {
+        width: 38px;
+        height: 38px;
+        font-size: 1.2rem;
+    }
+
+    .example-row {
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    .example-text {
+        font-size: 0.95rem;
+    }
 }
 
 /* Extra small screens - stack input and button */
@@ -639,6 +696,65 @@ footer {
 
     .keyboard-row-bottom {
         gap: 5px;
+    }
+
+    /* Extra compact modal for very small screens */
+    .modal {
+        padding: 8px;
+    }
+
+    .modal-content {
+        border-radius: 10px;
+        max-height: 92vh;
+    }
+
+    .modal-header {
+        padding: 14px 16px;
+    }
+
+    .modal-header h2 {
+        font-size: 1.2rem;
+    }
+
+    .modal-body {
+        padding: 16px;
+    }
+
+    .modal-section {
+        margin-top: 16px;
+    }
+
+    .modal-section h3 {
+        font-size: 0.95rem;
+        margin-bottom: 10px;
+    }
+
+    .modal-section li {
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+    }
+
+    .tile-example {
+        width: 36px;
+        height: 36px;
+        font-size: 1.1rem;
+    }
+
+    .example-row {
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    .example-text {
+        font-size: 0.9rem;
+    }
+
+    .example-text strong {
+        font-size: 0.9rem;
+    }
+
+    .example-text p {
+        font-size: 0.85rem;
     }
 }
 
