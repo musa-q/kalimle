@@ -66,14 +66,19 @@ async def verify_admin_session(
     return session_data
 
 
-def get_game_state(game_state_cookie: Optional[str]) -> dict:
-    """Parse game state from cookie or return fresh state."""
+def get_game_state(game_state_cookie: Optional[str], puzzle: dict = None) -> dict:
+    """Parse game state from cookie or return fresh state.
+    Regenerates feedback from guesses to avoid cookie size limits.
+    """
     today_key = get_game_state_key()
     
     if game_state_cookie:
         try:
             state = json.loads(game_state_cookie)
             if state.get("date") == today_key:
+                # Regenerate feedback from guesses if puzzle is provided
+                if puzzle and state.get("guesses"):
+                    state["feedback"] = [validator.validate_guess(guess, puzzle["target"]) for guess in state["guesses"]]
                 return state
         except (json.JSONDecodeError, TypeError):
             pass
@@ -95,7 +100,7 @@ def get_game_state(game_state_cookie: Optional[str]) -> dict:
 async def home(request: Request, game_state: Optional[str] = Cookie(default=None), error_message: Optional[str] = Cookie(default=None)):
     """Main game page."""
     puzzle = database.get_todays_puzzle()
-    state = get_game_state(game_state)
+    state = get_game_state(game_state, puzzle)
     
     response = templates.TemplateResponse("game.html", {
         "request": request,
@@ -134,7 +139,7 @@ async def submit_guess(
 ):
     """Process a guess submission."""
     puzzle = database.get_todays_puzzle()
-    state = get_game_state(game_state)
+    state = get_game_state(game_state, puzzle)
     
     if state["game_over"]:
         response = RedirectResponse(url="/", status_code=303)
@@ -145,11 +150,17 @@ async def submit_guess(
     # Validate guess length
     is_valid, error_msg = validator.validate_guess_length(guess, puzzle["target"])
     if not is_valid:
-        # Store error in cookie and redirect
+        # Store error in cookie and redirect (without feedback to keep cookie small)
+        cookie_state = {
+            "date": state["date"],
+            "guesses": state["guesses"],
+            "game_over": state["game_over"],
+            "won": state["won"]
+        }
         response = RedirectResponse(url="/", status_code=303)
         response.set_cookie(
             key="game_state",
-            value=json.dumps(state),
+            value=json.dumps(cookie_state),
             max_age=86400,
             httponly=True,
             samesite="lax"
@@ -163,12 +174,8 @@ async def submit_guess(
         )
         return response
     
-    # Get feedback
-    feedback = validator.validate_guess(guess, puzzle["target"])
-    
-    # Update state
+    # Update state (just add guess, feedback will be regenerated)
     state["guesses"].append(guess)
-    state["feedback"].append(feedback)
     
     # Check win/lose
     if validator.check_win(guess, puzzle["target"]):
@@ -177,11 +184,19 @@ async def submit_guess(
     elif len(state["guesses"]) >= MAX_GUESSES:
         state["game_over"] = True
     
+    # Store minimal state in cookie (without feedback to keep size small)
+    cookie_state = {
+        "date": state["date"],
+        "guesses": state["guesses"],
+        "game_over": state["game_over"],
+        "won": state["won"]
+    }
+    
     # Redirect back to home page (Post/Redirect/Get pattern)
     response = RedirectResponse(url="/", status_code=303)
     response.set_cookie(
         key="game_state",
-        value=json.dumps(state),
+        value=json.dumps(cookie_state),
         max_age=86400,
         httponly=True,
         samesite="lax"

@@ -99,10 +99,16 @@ class BaseWordValidator(ABC):
         
         # First pass: mark correct positions (green)
         temp_result = [None] * len(guess_letters)
+        target_display_letters = list(target)  # Original target letters for display
         for i, letter in enumerate(guess_letters):
             normalized_letter = self.normalize_text(letter)
             if i < len(target_letters) and normalized_letter == target_letters[i]:
-                temp_result[i] = {'letter': letter, 'status': 'correct'}
+                temp_result[i] = {
+                    'letter': letter,
+                    'status': 'correct',
+                    'keyboard_letter': target_display_letters[i] if i < len(target_display_letters) else letter,
+                    'guessed_letter': letter
+                }
                 target_letter_counts[normalized_letter] -= 1
         
         # Second pass: mark present but wrong position (yellow) or absent (gray)
@@ -112,10 +118,20 @@ class BaseWordValidator(ABC):
             
             normalized_letter = self.normalize_text(letter)
             if normalized_letter in target_letter_counts and target_letter_counts[normalized_letter] > 0:
-                temp_result[i] = {'letter': letter, 'status': 'present'}
+                temp_result[i] = {
+                    'letter': letter,
+                    'status': 'present',
+                    'keyboard_letter': target_display_letters[i] if i < len(target_display_letters) else letter,
+                    'guessed_letter': letter
+                }
                 target_letter_counts[normalized_letter] -= 1
             else:
-                temp_result[i] = {'letter': letter, 'status': 'absent'}
+                temp_result[i] = {
+                    'letter': letter,
+                    'status': 'absent',
+                    'keyboard_letter': target_display_letters[i] if i < len(target_display_letters) else letter,
+                    'guessed_letter': letter
+                }
         
         return temp_result
     
