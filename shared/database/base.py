@@ -174,24 +174,78 @@ class BaseDatabase:
         
         return None
     
+    async def deactivate_past_scheduled_puzzles(self) -> int:
+        """
+        Deactivate puzzles with scheduled_date in the past.
+        Returns the number of puzzles deactivated.
+        """
+        client = self.admin_client
+        if not client:
+            return 0
+        
+        try:
+            from datetime import date
+            
+            today = date.today().isoformat()
+            
+            # Build query to find past scheduled puzzles that are still active
+            query = client.table("puzzles").select("id").eq("active", True).lt("scheduled_date", today)
+            if self.language:
+                query = query.eq("language", self.language)
+            
+            response = query.execute()
+            past_puzzles = response.data or []
+            
+            if not past_puzzles:
+                return 0
+            
+            # Deactivate them
+            puzzle_ids = [p["id"] for p in past_puzzles]
+            for puzzle_id in puzzle_ids:
+                client.table("puzzles").update({"active": False}).eq("id", puzzle_id).execute()
+            
+            print(f"[INFO] Deactivated {len(puzzle_ids)} past scheduled puzzles for language: {self.language or 'all'}")
+            return len(puzzle_ids)
+        except Exception as e:
+            print(f"Error deactivating past puzzles: {e}")
+            return 0
+    
     # =========================================================================
     # PUZZLE FUNCTIONS
     # =========================================================================
     
-    async def get_all_puzzles(self) -> List[Dict]:
-        """Fetch all puzzles from Supabase, filtered by language if set."""
+    async def get_all_puzzles(self, include_past: bool = False) -> List[Dict]:
+        """
+        Fetch all puzzles from Supabase, filtered by language if set.
+        
+        Args:
+            include_past: If False, excludes puzzles with scheduled_date in the past
+        """
         client = self.client
         if not client:
             return []
         
         try:
+            from datetime import date
+            
             query = client.table("puzzles").select("*")
             if self.language:
                 print(f"[DEBUG] Filtering puzzles by language: {self.language}")
                 query = query.eq("language", self.language)
+            
             response = query.order("created_at", desc=True).execute()
-            print(f"[DEBUG] Fetched {len(response.data or [])} puzzles for language: {self.language or 'all'}")
-            return response.data or []
+            puzzles = response.data or []
+            
+            # Filter out past scheduled puzzles if not including them
+            if not include_past:
+                today = date.today().isoformat()
+                puzzles = [
+                    p for p in puzzles
+                    if not p.get("scheduled_date") or p.get("scheduled_date") >= today
+                ]
+            
+            print(f"[DEBUG] Fetched {len(puzzles)} puzzles for language: {self.language or 'all'} (include_past={include_past})")
+            return puzzles
         except Exception as e:
             print(f"Error fetching puzzles: {e}")
             return []
