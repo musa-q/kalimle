@@ -92,87 +92,10 @@ def get_game_state(game_state_cookie: Optional[str]) -> dict:
 # ============================================================================
 
 @app.get("/", response_class=HTMLResponse)
-async def home(request: Request, game_state: Optional[str] = Cookie(default=None)):
+async def home(request: Request, game_state: Optional[str] = Cookie(default=None), error_message: Optional[str] = Cookie(default=None)):
     """Main game page."""
     puzzle = database.get_todays_puzzle()
     state = get_game_state(game_state)
-    
-    return templates.TemplateResponse("game.html", {
-        "request": request,
-        "app_name": LANGUAGE_CONFIG["app_name"],
-        "lang_code": LANGUAGE_CONFIG["code"],
-        "text_direction": LANGUAGE_CONFIG["text_direction"],
-        "sentence": puzzle["sentence"],
-        "guesses": state["guesses"],
-        "feedback": state["feedback"],
-        "game_over": state["game_over"],
-        "won": state["won"],
-        "max_guesses": MAX_GUESSES,
-        "remaining_guesses": MAX_GUESSES - len(state["guesses"]),
-        "target": puzzle["target"] if state["game_over"] else None,
-        "pronunciation": puzzle["pronunciation"] if state["game_over"] else None,
-        "meaning": puzzle["meaning"] if state["game_over"] else None,
-        "example": puzzle["example"] if state["game_over"] else None,
-        "target_length": validator.count_letters(puzzle["target"]),
-        "keyboard_layout": KEYBOARD_LAYOUT,
-        "help_text": LANGUAGE_CONFIG["help_text"]
-    })
-
-
-@app.post("/guess", response_class=HTMLResponse)
-async def submit_guess(
-    request: Request,
-    guess: str = Form(...),
-    game_state: Optional[str] = Cookie(default=None)
-):
-    """Process a guess submission."""
-    puzzle = database.get_todays_puzzle()
-    state = get_game_state(game_state)
-    
-    if state["game_over"]:
-        response = RedirectResponse(url="/", status_code=303)
-        return response
-    
-    guess = guess.strip()
-    
-    # Validate guess length
-    is_valid, error_msg = validator.validate_guess_length(guess, puzzle["target"])
-    if not is_valid:
-        return templates.TemplateResponse("game.html", {
-            "request": request,
-            "app_name": LANGUAGE_CONFIG["app_name"],
-            "lang_code": LANGUAGE_CONFIG["code"],
-            "text_direction": LANGUAGE_CONFIG["text_direction"],
-            "sentence": puzzle["sentence"],
-            "guesses": state["guesses"],
-            "feedback": state["feedback"],
-            "game_over": state["game_over"],
-            "won": state["won"],
-            "max_guesses": MAX_GUESSES,
-            "remaining_guesses": MAX_GUESSES - len(state["guesses"]),
-            "target": None,
-            "pronunciation": None,
-            "meaning": None,
-            "example": None,
-            "target_length": validator.count_letters(puzzle["target"]),
-            "keyboard_layout": KEYBOARD_LAYOUT,
-            "help_text": LANGUAGE_CONFIG["help_text"],
-            "error": error_msg
-        })
-    
-    # Get feedback
-    feedback = validator.validate_guess(guess, puzzle["target"])
-    
-    # Update state
-    state["guesses"].append(guess)
-    state["feedback"].append(feedback)
-    
-    # Check win/lose
-    if validator.check_win(guess, puzzle["target"]):
-        state["won"] = True
-        state["game_over"] = True
-    elif len(state["guesses"]) >= MAX_GUESSES:
-        state["game_over"] = True
     
     response = templates.TemplateResponse("game.html", {
         "request": request,
@@ -192,9 +115,70 @@ async def submit_guess(
         "example": puzzle["example"] if state["game_over"] else None,
         "target_length": validator.count_letters(puzzle["target"]),
         "keyboard_layout": KEYBOARD_LAYOUT,
-        "help_text": LANGUAGE_CONFIG["help_text"]
+        "help_text": LANGUAGE_CONFIG["help_text"],
+        "error": error_message
     })
     
+    # Clear the error message cookie after displaying
+    if error_message:
+        response.delete_cookie(key="error_message")
+    
+    return response
+
+
+@app.post("/guess")
+async def submit_guess(
+    request: Request,
+    guess: str = Form(...),
+    game_state: Optional[str] = Cookie(default=None)
+):
+    """Process a guess submission."""
+    puzzle = database.get_todays_puzzle()
+    state = get_game_state(game_state)
+    
+    if state["game_over"]:
+        response = RedirectResponse(url="/", status_code=303)
+        return response
+    
+    guess = guess.strip()
+    
+    # Validate guess length
+    is_valid, error_msg = validator.validate_guess_length(guess, puzzle["target"])
+    if not is_valid:
+        # Store error in cookie and redirect
+        response = RedirectResponse(url="/", status_code=303)
+        response.set_cookie(
+            key="game_state",
+            value=json.dumps(state),
+            max_age=86400,
+            httponly=True,
+            samesite="lax"
+        )
+        response.set_cookie(
+            key="error_message",
+            value=error_msg,
+            max_age=5,  # Short-lived error cookie
+            httponly=True,
+            samesite="lax"
+        )
+        return response
+    
+    # Get feedback
+    feedback = validator.validate_guess(guess, puzzle["target"])
+    
+    # Update state
+    state["guesses"].append(guess)
+    state["feedback"].append(feedback)
+    
+    # Check win/lose
+    if validator.check_win(guess, puzzle["target"]):
+        state["won"] = True
+        state["game_over"] = True
+    elif len(state["guesses"]) >= MAX_GUESSES:
+        state["game_over"] = True
+    
+    # Redirect back to home page (Post/Redirect/Get pattern)
+    response = RedirectResponse(url="/", status_code=303)
     response.set_cookie(
         key="game_state",
         value=json.dumps(state),
