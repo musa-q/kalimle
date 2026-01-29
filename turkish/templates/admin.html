@@ -141,7 +141,14 @@ Return ONLY the JSON array, no additional text or explanation</textarea>
 
         <!-- Puzzles List -->
         <div class="card">
-            <h2>📚 All Puzzles ({{ puzzles|length }})</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h2 style="margin: 0;">📚 All Puzzles ({{ puzzles|length }})</h2>
+                {% if show_past %}
+                <a href="/admin" class="btn btn-small btn-outline">Hide Past Puzzles</a>
+                {% else %}
+                <a href="/admin?show_past=true" class="btn btn-small btn-outline">Show Past Puzzles</a>
+                {% endif %}
+            </div>
             {% if puzzles %}
             <div class="table-container">
                 <table>

@@ -62,11 +62,12 @@ class BaseDatabase:
     Each language version extends this with its own Supabase credentials.
     """
     
-    def __init__(self, supabase_url: str, supabase_key: str, supabase_service_key: str = "", admin_secret: str = ""):
+    def __init__(self, supabase_url: str, supabase_key: str, supabase_service_key: str = "", admin_secret: str = "", language: str = ""):
         self.supabase_url = supabase_url
         self.supabase_key = supabase_key
         self.supabase_service_key = supabase_service_key
         self.admin_secret = admin_secret
+        self.language = language  # e.g., 'arabic', 'turkish'
         self._client: Any = None
         self._admin_client: Any = None
     
@@ -173,44 +174,109 @@ class BaseDatabase:
         
         return None
     
+    async def deactivate_past_scheduled_puzzles(self) -> int:
+        """
+        Deactivate puzzles with scheduled_date in the past.
+        Returns the number of puzzles deactivated.
+        """
+        client = self.admin_client
+        if not client:
+            return 0
+        
+        try:
+            from datetime import date
+            
+            today = date.today().isoformat()
+            
+            # Build query to find past scheduled puzzles that are still active
+            query = client.table("puzzles").select("id").eq("active", True).lt("scheduled_date", today)
+            if self.language:
+                query = query.eq("language", self.language)
+            
+            response = query.execute()
+            past_puzzles = response.data or []
+            
+            if not past_puzzles:
+                return 0
+            
+            # Deactivate them
+            puzzle_ids = [p["id"] for p in past_puzzles]
+            for puzzle_id in puzzle_ids:
+                client.table("puzzles").update({"active": False}).eq("id", puzzle_id).execute()
+            
+            print(f"[INFO] Deactivated {len(puzzle_ids)} past scheduled puzzles for language: {self.language or 'all'}")
+            return len(puzzle_ids)
+        except Exception as e:
+            print(f"Error deactivating past puzzles: {e}")
+            return 0
+    
     # =========================================================================
     # PUZZLE FUNCTIONS
     # =========================================================================
     
-    async def get_all_puzzles(self) -> List[Dict]:
-        """Fetch all puzzles from Supabase."""
+    async def get_all_puzzles(self, include_past: bool = False) -> List[Dict]:
+        """
+        Fetch all puzzles from Supabase, filtered by language if set.
+        
+        Args:
+            include_past: If False, excludes puzzles with scheduled_date in the past
+        """
         client = self.client
         if not client:
             return []
         
         try:
-            response = client.table("puzzles").select("*").order("created_at", desc=True).execute()
-            return response.data or []
+            from datetime import date
+            
+            query = client.table("puzzles").select("*")
+            if self.language:
+                print(f"[DEBUG] Filtering puzzles by language: {self.language}")
+                query = query.eq("language", self.language)
+            
+            response = query.order("created_at", desc=True).execute()
+            puzzles = response.data or []
+            
+            # Filter out past scheduled puzzles if not including them
+            if not include_past:
+                today = date.today().isoformat()
+                puzzles = [
+                    p for p in puzzles
+                    if not p.get("scheduled_date") or p.get("scheduled_date") >= today
+                ]
+            
+            print(f"[DEBUG] Fetched {len(puzzles)} puzzles for language: {self.language or 'all'} (include_past={include_past})")
+            return puzzles
         except Exception as e:
             print(f"Error fetching puzzles: {e}")
             return []
     
     async def get_active_puzzles(self) -> List[Dict]:
-        """Fetch only active puzzles from Supabase."""
+        """Fetch only active puzzles from Supabase, filtered by language if set."""
         client = self.client
         if not client:
             return []
         
         try:
-            response = client.table("puzzles").select("*").eq("active", True).execute()
+            query = client.table("puzzles").select("*").eq("active", True)
+            if self.language:
+                query = query.eq("language", self.language)
+            response = query.execute()
             return response.data or []
         except Exception as e:
             print(f"Error fetching active puzzles: {e}")
             return []
     
     async def get_puzzle_by_date(self, date_str: str) -> Optional[Dict]:
-        """Get a specific puzzle assigned to a date."""
+        """Get a specific puzzle assigned to a date, filtered by language if set."""
         client = self.client
         if not client:
             return None
         
         try:
-            response = client.table("puzzles").select("*").eq("scheduled_date", date_str).single().execute()
+            query = client.table("puzzles").select("*").eq("scheduled_date", date_str)
+            if self.language:
+                query = query.eq("language", self.language)
+            response = query.single().execute()
             return response.data
         except Exception:
             return None
@@ -232,6 +298,9 @@ class BaseDatabase:
                 "scheduled_date": puzzle.get("scheduled_date"),
                 "created_at": datetime.now(timezone.utc).isoformat()
             }
+            # Add language if set
+            if self.language:
+                puzzle_data["language"] = self.language
             response = client.table("puzzles").insert(puzzle_data).execute()
             return response.data[0] if response.data else None
         except Exception as e:
@@ -247,7 +316,7 @@ class BaseDatabase:
         try:
             puzzle_data = []
             for puzzle in puzzles:
-                puzzle_data.append({
+                data = {
                     "sentence": puzzle["sentence"],
                     "target": puzzle["target"],
                     "pronunciation": puzzle["pronunciation"],
@@ -256,7 +325,11 @@ class BaseDatabase:
                     "active": puzzle.get("active", True),
                     "scheduled_date": puzzle.get("scheduled_date"),
                     "created_at": datetime.now(timezone.utc).isoformat()
-                })
+                }
+                # Add language if set
+                if self.language:
+                    data["language"] = self.language
+                puzzle_data.append(data)
             response = client.table("puzzles").insert(puzzle_data).execute()
             return response.data or []
         except Exception as e:
@@ -299,8 +372,11 @@ class BaseDatabase:
             return None
         
         try:
-            # First, unschedule any puzzle currently on that date
-            client.table("puzzles").update({"scheduled_date": None}).eq("scheduled_date", date_str).execute()
+            # First, unschedule any puzzle currently on that date (for this language)
+            unschedule_query = client.table("puzzles").update({"scheduled_date": None}).eq("scheduled_date", date_str)
+            if self.language:
+                unschedule_query = unschedule_query.eq("language", self.language)
+            unschedule_query.execute()
             
             # Then schedule the new puzzle
             response = client.table("puzzles").update({"scheduled_date": date_str}).eq("id", puzzle_id).execute()

@@ -66,14 +66,19 @@ async def verify_admin_session(
     return session_data
 
 
-def get_game_state(game_state_cookie: Optional[str]) -> dict:
-    """Parse game state from cookie or return fresh state."""
+def get_game_state(game_state_cookie: Optional[str], puzzle: dict = None) -> dict:
+    """Parse game state from cookie or return fresh state.
+    Regenerates feedback from guesses to avoid cookie size limits.
+    """
     today_key = get_game_state_key()
     
     if game_state_cookie:
         try:
             state = json.loads(game_state_cookie)
             if state.get("date") == today_key:
+                # Regenerate feedback from guesses if puzzle is provided
+                if puzzle and state.get("guesses"):
+                    state["feedback"] = [validator.validate_guess(guess, puzzle["target"]) for guess in state["guesses"]]
                 return state
         except (json.JSONDecodeError, TypeError):
             pass
@@ -92,87 +97,10 @@ def get_game_state(game_state_cookie: Optional[str]) -> dict:
 # ============================================================================
 
 @app.get("/", response_class=HTMLResponse)
-async def home(request: Request, game_state: Optional[str] = Cookie(default=None)):
+async def home(request: Request, game_state: Optional[str] = Cookie(default=None), error_message: Optional[str] = Cookie(default=None)):
     """Main game page."""
     puzzle = database.get_todays_puzzle()
-    state = get_game_state(game_state)
-    
-    return templates.TemplateResponse("game.html", {
-        "request": request,
-        "app_name": LANGUAGE_CONFIG["app_name"],
-        "lang_code": LANGUAGE_CONFIG["code"],
-        "text_direction": LANGUAGE_CONFIG["text_direction"],
-        "sentence": puzzle["sentence"],
-        "guesses": state["guesses"],
-        "feedback": state["feedback"],
-        "game_over": state["game_over"],
-        "won": state["won"],
-        "max_guesses": MAX_GUESSES,
-        "remaining_guesses": MAX_GUESSES - len(state["guesses"]),
-        "target": puzzle["target"] if state["game_over"] else None,
-        "pronunciation": puzzle["pronunciation"] if state["game_over"] else None,
-        "meaning": puzzle["meaning"] if state["game_over"] else None,
-        "example": puzzle["example"] if state["game_over"] else None,
-        "target_length": validator.count_letters(puzzle["target"]),
-        "keyboard_layout": KEYBOARD_LAYOUT,
-        "help_text": LANGUAGE_CONFIG["help_text"]
-    })
-
-
-@app.post("/guess", response_class=HTMLResponse)
-async def submit_guess(
-    request: Request,
-    guess: str = Form(...),
-    game_state: Optional[str] = Cookie(default=None)
-):
-    """Process a guess submission."""
-    puzzle = database.get_todays_puzzle()
-    state = get_game_state(game_state)
-    
-    if state["game_over"]:
-        response = RedirectResponse(url="/", status_code=303)
-        return response
-    
-    guess = guess.strip()
-    
-    # Validate guess length
-    is_valid, error_msg = validator.validate_guess_length(guess, puzzle["target"])
-    if not is_valid:
-        return templates.TemplateResponse("game.html", {
-            "request": request,
-            "app_name": LANGUAGE_CONFIG["app_name"],
-            "lang_code": LANGUAGE_CONFIG["code"],
-            "text_direction": LANGUAGE_CONFIG["text_direction"],
-            "sentence": puzzle["sentence"],
-            "guesses": state["guesses"],
-            "feedback": state["feedback"],
-            "game_over": state["game_over"],
-            "won": state["won"],
-            "max_guesses": MAX_GUESSES,
-            "remaining_guesses": MAX_GUESSES - len(state["guesses"]),
-            "target": None,
-            "pronunciation": None,
-            "meaning": None,
-            "example": None,
-            "target_length": validator.count_letters(puzzle["target"]),
-            "keyboard_layout": KEYBOARD_LAYOUT,
-            "help_text": LANGUAGE_CONFIG["help_text"],
-            "error": error_msg
-        })
-    
-    # Get feedback
-    feedback = validator.validate_guess(guess, puzzle["target"])
-    
-    # Update state
-    state["guesses"].append(guess)
-    state["feedback"].append(feedback)
-    
-    # Check win/lose
-    if validator.check_win(guess, puzzle["target"]):
-        state["won"] = True
-        state["game_over"] = True
-    elif len(state["guesses"]) >= MAX_GUESSES:
-        state["game_over"] = True
+    state = get_game_state(game_state, puzzle)
     
     response = templates.TemplateResponse("game.html", {
         "request": request,
@@ -192,12 +120,83 @@ async def submit_guess(
         "example": puzzle["example"] if state["game_over"] else None,
         "target_length": validator.count_letters(puzzle["target"]),
         "keyboard_layout": KEYBOARD_LAYOUT,
-        "help_text": LANGUAGE_CONFIG["help_text"]
+        "help_text": LANGUAGE_CONFIG["help_text"],
+        "error": error_message
     })
     
+    # Clear the error message cookie after displaying
+    if error_message:
+        response.delete_cookie(key="error_message")
+    
+    return response
+
+
+@app.post("/guess")
+async def submit_guess(
+    request: Request,
+    guess: str = Form(...),
+    game_state: Optional[str] = Cookie(default=None)
+):
+    """Process a guess submission."""
+    puzzle = database.get_todays_puzzle()
+    state = get_game_state(game_state, puzzle)
+    
+    if state["game_over"]:
+        response = RedirectResponse(url="/", status_code=303)
+        return response
+    
+    guess = guess.strip()
+    
+    # Validate guess length
+    is_valid, error_msg = validator.validate_guess_length(guess, puzzle["target"])
+    if not is_valid:
+        # Store error in cookie and redirect (without feedback to keep cookie small)
+        cookie_state = {
+            "date": state["date"],
+            "guesses": state["guesses"],
+            "game_over": state["game_over"],
+            "won": state["won"]
+        }
+        response = RedirectResponse(url="/", status_code=303)
+        response.set_cookie(
+            key="game_state",
+            value=json.dumps(cookie_state),
+            max_age=86400,
+            httponly=True,
+            samesite="lax"
+        )
+        response.set_cookie(
+            key="error_message",
+            value=error_msg,
+            max_age=5,  # Short-lived error cookie
+            httponly=True,
+            samesite="lax"
+        )
+        return response
+    
+    # Update state (just add guess, feedback will be regenerated)
+    state["guesses"].append(guess)
+    
+    # Check win/lose
+    if validator.check_win(guess, puzzle["target"]):
+        state["won"] = True
+        state["game_over"] = True
+    elif len(state["guesses"]) >= MAX_GUESSES:
+        state["game_over"] = True
+    
+    # Store minimal state in cookie (without feedback to keep size small)
+    cookie_state = {
+        "date": state["date"],
+        "guesses": state["guesses"],
+        "game_over": state["game_over"],
+        "won": state["won"]
+    }
+    
+    # Redirect back to home page (Post/Redirect/Get pattern)
+    response = RedirectResponse(url="/", status_code=303)
     response.set_cookie(
         key="game_state",
-        value=json.dumps(state),
+        value=json.dumps(cookie_state),
         max_age=86400,
         httponly=True,
         samesite="lax"
@@ -279,7 +278,8 @@ async def admin_panel(
     admin_session: Optional[str] = Cookie(default=None),
     admin_token: Optional[str] = Cookie(default=None),
     success: Optional[str] = None,
-    error: Optional[str] = None
+    error: Optional[str] = None,
+    show_past: bool = False
 ):
     """Admin panel page."""
     user = await verify_admin_session(admin_session, admin_token)
@@ -287,7 +287,13 @@ async def admin_panel(
         return RedirectResponse(url="/admin/login", status_code=303)
     
     settings = get_settings()
-    puzzles = await database.get_all_puzzles()
+    
+    # Fetch puzzles based on show_past parameter
+    if show_past:
+        puzzles = await database.get_all_puzzles_with_past()
+    else:
+        puzzles = await database.get_all_puzzles()
+    
     today_puzzle = database.get_todays_puzzle()
     today_date = get_today_gmt().isoformat()
     
@@ -300,7 +306,8 @@ async def admin_panel(
         "supabase_configured": settings.supabase_configured,
         "user_email": user.get("email", "Admin"),
         "success": success,
-        "error": error
+        "error": error,
+        "show_past": show_past
     })
 
 

@@ -1,4 +1,4 @@
--- Supabase Setup SQL for kalimle
+-- Supabase Setup SQL for kalimle (Multi-language)
 -- Run this in your Supabase SQL Editor to create the necessary tables
 
 -- Create the puzzles table
@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS puzzles (
     example TEXT,
     active BOOLEAN DEFAULT true,
     scheduled_date DATE,
+    language TEXT DEFAULT 'arabic',  -- 'arabic' or 'turkish'
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -19,10 +20,11 @@ CREATE TABLE IF NOT EXISTS puzzles (
 CREATE INDEX IF NOT EXISTS idx_puzzles_active ON puzzles(active);
 CREATE INDEX IF NOT EXISTS idx_puzzles_scheduled_date ON puzzles(scheduled_date);
 CREATE INDEX IF NOT EXISTS idx_puzzles_created_at ON puzzles(created_at);
+CREATE INDEX IF NOT EXISTS idx_puzzles_language ON puzzles(language);
 
--- Unique constraint to prevent multiple puzzles on the same date
-CREATE UNIQUE INDEX IF NOT EXISTS idx_puzzles_unique_scheduled_date 
-    ON puzzles(scheduled_date) 
+-- Unique constraint to prevent multiple puzzles on the same date PER LANGUAGE
+CREATE UNIQUE INDEX IF NOT EXISTS idx_puzzles_unique_scheduled_date_language 
+    ON puzzles(scheduled_date, language) 
     WHERE scheduled_date IS NOT NULL;
 
 -- Enable Row Level Security (RLS)
@@ -78,6 +80,7 @@ SELECT
     meaning,
     active,
     scheduled_date,
+    language,
     CASE 
         WHEN scheduled_date = CURRENT_DATE THEN 'Today'
         WHEN scheduled_date > CURRENT_DATE THEN 'Upcoming'
@@ -87,6 +90,7 @@ SELECT
     created_at
 FROM puzzles
 ORDER BY 
+    language,
     CASE WHEN scheduled_date IS NULL THEN 1 ELSE 0 END,
     scheduled_date DESC NULLS LAST,
     created_at DESC;
