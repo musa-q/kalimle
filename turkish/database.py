@@ -31,7 +31,8 @@ def get_database() -> BaseDatabase:
             supabase_url=settings.SUPABASE_URL,
             supabase_key=settings.SUPABASE_KEY,
             supabase_service_key=settings.SUPABASE_SERVICE_KEY,
-            admin_secret=settings.ADMIN_SECRET
+            admin_secret=settings.ADMIN_SECRET,
+            language="turkish"
         )
 
     return _db_instance
