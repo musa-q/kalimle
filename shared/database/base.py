@@ -174,6 +174,42 @@ class BaseDatabase:
         
         return None
     
+    async def deactivate_past_scheduled_puzzles(self) -> int:
+        """
+        Deactivate puzzles with scheduled_date in the past.
+        Returns the number of puzzles deactivated.
+        """
+        client = self.admin_client
+        if not client:
+            return 0
+        
+        try:
+            from datetime import date
+            
+            today = date.today().isoformat()
+            
+            # Build query to find past scheduled puzzles that are still active
+            query = client.table("puzzles").select("id").eq("active", True).lt("scheduled_date", today)
+            if self.language:
+                query = query.eq("language", self.language)
+            
+            response = query.execute()
+            past_puzzles = response.data or []
+            
+            if not past_puzzles:
+                return 0
+            
+            # Deactivate them
+            puzzle_ids = [p["id"] for p in past_puzzles]
+            for puzzle_id in puzzle_ids:
+                client.table("puzzles").update({"active": False}).eq("id", puzzle_id).execute()
+            
+            print(f"[INFO] Deactivated {len(puzzle_ids)} past scheduled puzzles for language: {self.language or 'all'}")
+            return len(puzzle_ids)
+        except Exception as e:
+            print(f"Error deactivating past puzzles: {e}")
+            return 0
+    
     # =========================================================================
     # PUZZLE FUNCTIONS
     # =========================================================================
