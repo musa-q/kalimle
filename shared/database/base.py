@@ -178,20 +178,38 @@ class BaseDatabase:
     # PUZZLE FUNCTIONS
     # =========================================================================
     
-    async def get_all_puzzles(self) -> List[Dict]:
-        """Fetch all puzzles from Supabase, filtered by language if set."""
+    async def get_all_puzzles(self, include_past: bool = False) -> List[Dict]:
+        """
+        Fetch all puzzles from Supabase, filtered by language if set.
+        
+        Args:
+            include_past: If False, excludes puzzles with scheduled_date in the past
+        """
         client = self.client
         if not client:
             return []
         
         try:
+            from datetime import date
+            
             query = client.table("puzzles").select("*")
             if self.language:
                 print(f"[DEBUG] Filtering puzzles by language: {self.language}")
                 query = query.eq("language", self.language)
+            
             response = query.order("created_at", desc=True).execute()
-            print(f"[DEBUG] Fetched {len(response.data or [])} puzzles for language: {self.language or 'all'}")
-            return response.data or []
+            puzzles = response.data or []
+            
+            # Filter out past scheduled puzzles if not including them
+            if not include_past:
+                today = date.today().isoformat()
+                puzzles = [
+                    p for p in puzzles
+                    if not p.get("scheduled_date") or p.get("scheduled_date") >= today
+                ]
+            
+            print(f"[DEBUG] Fetched {len(puzzles)} puzzles for language: {self.language or 'all'} (include_past={include_past})")
+            return puzzles
         except Exception as e:
             print(f"Error fetching puzzles: {e}")
             return []

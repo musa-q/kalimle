@@ -279,7 +279,8 @@ async def admin_panel(
     admin_session: Optional[str] = Cookie(default=None),
     admin_token: Optional[str] = Cookie(default=None),
     success: Optional[str] = None,
-    error: Optional[str] = None
+    error: Optional[str] = None,
+    show_past: bool = False
 ):
     """Admin panel page."""
     user = await verify_admin_session(admin_session, admin_token)
@@ -287,7 +288,13 @@ async def admin_panel(
         return RedirectResponse(url="/admin/login", status_code=303)
     
     settings = get_settings()
-    puzzles = await database.get_all_puzzles()
+    
+    # Fetch puzzles based on show_past parameter
+    if show_past:
+        puzzles = await database.get_all_puzzles_with_past()
+    else:
+        puzzles = await database.get_all_puzzles()
+    
     today_puzzle = database.get_todays_puzzle()
     today_date = get_today_gmt().isoformat()
     
@@ -300,7 +307,8 @@ async def admin_panel(
         "supabase_configured": settings.supabase_configured,
         "user_email": user.get("email", "Admin"),
         "success": success,
-        "error": error
+        "error": error,
+        "show_past": show_past
     })
 
 

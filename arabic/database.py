@@ -74,7 +74,12 @@ async def refresh_session(refresh_token: str):
 
 async def get_all_puzzles() -> List[Dict]:
     """Fetch all puzzles."""
-    return await get_database().get_all_puzzles()
+    return await get_database().get_all_puzzles(include_past=False)
+
+
+async def get_all_puzzles_with_past() -> List[Dict]:
+    """Fetch all puzzles including past scheduled ones."""
+    return await get_database().get_all_puzzles(include_past=True)
 
 
 async def get_active_puzzles() -> List[Dict]:
