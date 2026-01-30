@@ -31,7 +31,8 @@ def get_database() -> BaseDatabase:
             supabase_url=settings.SUPABASE_URL,
             supabase_key=settings.SUPABASE_KEY,
             supabase_service_key=settings.SUPABASE_SERVICE_KEY,
-            admin_secret=settings.ADMIN_SECRET
+            admin_secret=settings.ADMIN_SECRET,
+            language="arabic"
         )
 
     return _db_instance
@@ -73,7 +74,17 @@ async def refresh_session(refresh_token: str):
 
 async def get_all_puzzles() -> List[Dict]:
     """Fetch all puzzles."""
-    return await get_database().get_all_puzzles()
+    return await get_database().get_all_puzzles(include_past=False)
+
+
+async def get_all_puzzles_with_past() -> List[Dict]:
+    """Fetch all puzzles including past scheduled ones."""
+    return await get_database().get_all_puzzles(include_past=True)
+
+
+async def deactivate_past_scheduled_puzzles() -> int:
+    """Deactivate puzzles with scheduled_date in the past."""
+    return await get_database().deactivate_past_scheduled_puzzles()
 
 
 async def get_active_puzzles() -> List[Dict]:
@@ -167,12 +178,31 @@ def get_todays_puzzle() -> Dict:
     Get today's puzzle.
     Uses GMT timezone to ensure consistent puzzle for all users.
     Tries to fetch from database first, falls back to local puzzles.
+    Automatically deactivates past scheduled puzzles.
     """
     today = get_today_gmt()
     date_str = today.isoformat()
 
     # Try to get puzzles from database
     try:
+        # First, deactivate any past scheduled puzzles
+        try:
+            import nest_asyncio
+            nest_asyncio.apply()
+
+            # Check if we're already in an event loop
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                # No running loop - create one
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
+            # Deactivate past puzzles (runs once per day typically)
+            loop.run_until_complete(deactivate_past_scheduled_puzzles())
+        except Exception as e:
+            print(f"Warning: Could not deactivate past puzzles: {e}")
+        
         puzzles = _fetch_puzzles_sync()
         if puzzles:
             # First check for scheduled puzzle
