@@ -79,6 +79,11 @@ def get_game_state(game_state_cookie: Optional[str], puzzle: dict = None) -> dic
                 # Regenerate feedback from guesses if puzzle is provided
                 if puzzle and state.get("guesses"):
                     state["feedback"] = [validator.validate_guess(guess, puzzle["target"]) for guess in state["guesses"]]
+                # Ensure all required keys exist (for backward compatibility with old cookies)
+                state.setdefault("feedback", [])
+                state.setdefault("guesses", [])
+                state.setdefault("game_over", False)
+                state.setdefault("won", False)
                 return state
         except (json.JSONDecodeError, TypeError):
             pass
